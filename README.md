@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/DandreYang/EFNetworking/master/EFNetworking/Demo/Sources/EFNetworking-title.png" height="200" alt="EFNetworking" title="EFNetworking"/>
 </p>
 
-[![CI Status](http://img.shields.io/travis/Dandre126/EFNetworking.svg?style=flat)](https://travis-ci.org/Dandre126/EFNetworking)
+[![Build Status](https://travis-ci.org/Dandre126/EFNetworking.svg?branch=master)](https://travis-ci.org/Dandre126/EFNetworking)
 [![Version](https://img.shields.io/cocoapods/v/EFNetworking.svg?style=flat)](http://cocoapods.org/pods/EFNetworking)
 [![License](https://img.shields.io/cocoapods/l/EFNetworking.svg?style=flat)](http://cocoapods.org/pods/EFNetworking)
 [![Platform](https://img.shields.io/cocoapods/p/EFNetworking.svg?style=flat)](http://cocoapods.org/pods/EFNetworking)
