@@ -7,7 +7,7 @@ iOS网络层组件，支持POST/GET/PUT/DELETE等网络请求和上传下载及�
 
 ## CocoaPods
 ```ruby
-pod 'EFNetworking', :git => 'https://github.com/DandreYang/EFNetworking.git', :tag => '1.0.0'
+pod 'EFNetworking'
 ```
 
 ## Architecture
