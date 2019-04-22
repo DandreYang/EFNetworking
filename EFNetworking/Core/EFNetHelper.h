@@ -63,7 +63,7 @@
  @param requestModel 请求模型，需要遵循EFNRequestModelReformer协议
  @param reformerConfig 数据转换代理
  @param progressBlock 进度回调
- @param responseBlock 响应回调，reformData为转化后的数据，如果reformerConfig返回的数据转换代理为nil，则reformData = response.responseObject；否则会根据数据转换代理方法“- reformData:”返回对应类型的对象，并且可通过reformData.isSuccess判断数据请求是成功还是失败。
+ @param responseBlock 响应回调，reformData为转化后的数据，如果reformerConfig返回的数据转换代理为nil，则reformData = response.dataObject；否则会根据数据转换代理方法“- reformData:”返回对应类型的对象，并且可通过reformData.isSuccess判断数据请求是成功还是失败。
  @return 请求任务编号
  @warning requestModel 不能为 nil
  */
