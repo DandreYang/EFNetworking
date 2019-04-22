@@ -3,7 +3,7 @@
 //  EFNetworking
 //
 //  Created by Dandre on 2019/4/17.
-//  Copyright © 2019 Exceptional Financial Services Ltd. All rights reserved.
+//  Copyright © 2019 Dandre.Vip. All rights reserved.
 //
 
 /**
