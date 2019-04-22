@@ -8,9 +8,15 @@
 
 #import "EFNRequest.h"
 
+#define Lock() [self.lock lock]
+#define Unlock() [self.lock unlock]
+
+static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.lock";
+
 @interface EFNRequest ()
 
 @property (nonatomic, strong, readwrite) NSMutableArray<EFNUploadFormData *> *uploadDataArray;
+@property (nonatomic, strong) NSLock *lock;
 
 @end
 
@@ -48,9 +54,20 @@
     return _uploadDataArray;
 }
 
+- (NSLock *)lock {
+    if (!_lock) {
+        _lock = [[NSLock alloc] init];
+        _lock.name = EFNRequestLockName;
+    }
+    
+    return _lock;
+}
+
 - (void)setUploadFormDatas:(NSArray<EFNUploadFormData *> *)uploadFormDatas {
+    Lock();
     self.uploadDataArray.count == 0?:[self.uploadDataArray removeAllObjects];
     uploadFormDatas.count == 0?:[self.uploadDataArray addObjectsFromArray:uploadFormDatas];
+    Unlock();
 }
 
 - (NSArray<EFNUploadFormData *> *)uploadFormDatas {
@@ -60,32 +77,44 @@
 #pragma mark - Methods
 - (void)addFormDataWithName:(NSString *_Nullable)name fileData:(NSData *_Nonnull)fileData
 {
+    Lock();
     [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileData:fileData]];
+    Unlock();
 }
 
 - (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileData:(NSData *_Nonnull)fileData
 {
+    Lock();
     [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName fileData:fileData]];
+    Unlock();
 }
 
 - (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileData:(NSData *_Nonnull)fileData
 {
+    Lock();
     [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName mimeType:mimeType fileData:fileData]];
+    Unlock();
 }
 
 - (void)addFormDataWithName:(NSString *_Nullable)name fileURL:(NSURL *_Nonnull)fileURL
 {
+    Lock();
     [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileURL:fileURL]];
+    Unlock();
 }
 
 - (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileURL:(NSURL *_Nonnull)fileURL
 {
+    Lock();
     [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName fileURL:fileURL]];
+    Unlock();
 }
 
 - (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileURL:(NSURL *_Nonnull)fileURL
 {
+    Lock();
     [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName mimeType:mimeType fileURL:fileURL]];
+    Unlock();
 }
 
 @end

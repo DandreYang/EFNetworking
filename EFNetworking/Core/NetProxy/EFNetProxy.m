@@ -8,11 +8,17 @@
 
 #import "EFNetProxy.h"
 
+#define Lock() [self.lock lock]
+#define Unlock() [self.lock unlock]
+
+static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.lock";
+
 @interface EFNetProxy ()
 #if _EFN_USE_AFNETWORKING_
 @property (nonatomic, strong) AFHTTPSessionManager *sessionManager;
 #endif
 @property (nonatomic, strong, readwrite) NSMutableDictionary <NSNumber *, __kindof NSURLSessionTask *> *dispatchPool;
+@property (nonatomic, strong) NSLock *lock;
 
 @end
 
@@ -50,6 +56,15 @@
 - (void)dealloc
 {
     [self cancelAllRequests];
+}
+
+- (NSLock *)lock {
+    if (!_lock) {
+        _lock = [[NSLock alloc] init];
+        _lock.name = EFNetProxyLockName;
+    }
+    
+    return _lock;
 }
 
 #pragma mark - GET
@@ -216,7 +231,9 @@
                                       completionHandler:^(NSURLResponse * __unused response, id responseObject, NSError *error) {
                                           
                                           NSNumber *requestID = @([dataTask taskIdentifier]);
+                                          Lock();
                                           [self.dispatchPool removeObjectForKey:requestID];
+                                          Unlock();
                                           
                                           EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
                                                                                                     urlRequest:urlRequest
@@ -233,8 +250,12 @@
     
     requestID = @([dataTask taskIdentifier]);
     
-    self.dispatchPool[requestID] = dataTask;
-    [dataTask resume];
+    if (dataTask && requestID) {
+        Lock();
+        self.dispatchPool[requestID] = dataTask;
+        Unlock();
+        [dataTask resume];
+    }
 #endif
     return requestID;
 }
@@ -313,7 +334,9 @@
                                                            }
                                                      completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
                                                          NSNumber *requestID = @(downloadTask.taskIdentifier);
+                                                         Lock();
                                                          [self.dispatchPool removeObjectForKey:requestID];
+                                                         Unlock();
                                                          
                                                          EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
                                                                                                                    urlRequest:urlRequest
@@ -338,7 +361,9 @@
                                                   completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
                                                       
                                                       NSNumber *requestID = @(downloadTask.taskIdentifier);
+                                                      Lock();
                                                       [self.dispatchPool removeObjectForKey:requestID];
+                                                      Unlock();
                                                       
                                                       EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
                                                                                                                 urlRequest:urlRequest
@@ -358,9 +383,11 @@
     requestID = @(downloadTask.taskIdentifier);
     
     if (downloadTask && requestID) {
+        Lock();
         self.dispatchPool[requestID] = downloadTask;
+        Unlock();
+        [downloadTask resume];
     }
-    [downloadTask resume];
 #endif
     
     return requestID;
@@ -405,7 +432,9 @@
                                       }
                                        success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
                                            NSNumber *requestID = @(uploadTask.taskIdentifier);
+                                           Lock();
                                            [self.dispatchPool removeObjectForKey:requestID];
+                                           Unlock();
                                            
                                            EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
                                                                                                      urlRequest:task.originalRequest
@@ -417,7 +446,9 @@
                                        }
                                        failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
                                            NSNumber *requestID = @(uploadTask.taskIdentifier);
+                                           Lock();
                                            [self.dispatchPool removeObjectForKey:requestID];
+                                           Unlock();
                                            
                                            EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
                                                                                                      urlRequest:task.originalRequest
@@ -431,9 +462,11 @@
         NSNumber *requestID = @(uploadTask.taskIdentifier);
         
         if (requestID && uploadTask) {
+            Lock();
             self.dispatchPool[requestID] = uploadTask;
+            Unlock();
+            [uploadTask resume];
         }
-        [uploadTask resume];
         
         return requestID;
     }else{
@@ -449,7 +482,9 @@
 // 继续所有请求
 - (void)resumeAllRequests
 {
+    Lock();
     [self.dispatchPool.allValues makeObjectsPerformSelector:@selector(resume)];
+    Unlock();
 }
 
 // 继续指定请求
@@ -459,8 +494,10 @@
         NSLog(@"requestID is nil");
         return;
     }
+    Lock();
     NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
     [requestTask resume];
+    Unlock();
 }
 
 // 批量继续请求
@@ -471,8 +508,10 @@
     }
     
     for (NSNumber *requestID in requestIDList) {
+        Lock();
         NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
         [requestTask resume];
+        Unlock();
     }
 }
 
@@ -480,7 +519,9 @@
 // 暂停所有请求
 - (void)suspendAllRequests
 {
+    Lock();
     [self.dispatchPool.allValues makeObjectsPerformSelector:@selector(suspend)];
+    Unlock();
 }
 
 // 暂停指定请求
@@ -490,8 +531,10 @@
         NSLog(@"requestID is nil");
         return;
     }
+    Lock();
     NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
     [requestTask suspend];
+    Unlock();
 }
 
 // 批量暂停请求
@@ -502,8 +545,10 @@
     }
     
     for (NSNumber *requestID in requestIDList) {
+        Lock();
         NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
         [requestTask suspend];
+        Unlock();
     }
 }
 
@@ -511,8 +556,10 @@
 // 取消所有请求
 - (void)cancelAllRequests
 {
+    Lock();
     [self.dispatchPool.allValues makeObjectsPerformSelector:@selector(cancel)];
     [self.dispatchPool removeAllObjects];
+    Unlock();
 }
 
 // 取消指定请求
@@ -522,8 +569,10 @@
         NSLog(@"requestID is nil");
         return;
     }
+    Lock();
     [self.dispatchPool[requestID] cancel];
     [self.dispatchPool removeObjectForKey:requestID];
+    Unlock();
 }
 
 // 批量取消请求
@@ -534,11 +583,15 @@
     }
     
     for (NSNumber *requestID in requestIDList) {
+        Lock();
         NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
+        Unlock();
         [requestTask cancel];
     }
-
+    
+    Lock();
     [self.dispatchPool removeObjectsForKeys:requestIDList];
+    Unlock();
 }
 
 @end

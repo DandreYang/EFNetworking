@@ -10,6 +10,10 @@
 #import <objc/runtime.h>
 #import "NSDictionary+EFNetworking.h"
 
+#define Lock() [self.lock lock]
+#define Unlock() [self.lock unlock]
+static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelper.lock";
+
 @interface EFNetHelper ()
 
 /** 请求池 存放所有请求的任务ID */
@@ -20,6 +24,8 @@
 @property (nonatomic, strong, readwrite) EFNCacheHelper * cacheHelper;
 /** 是否正在请求数据 */
 @property (nonatomic, assign, readwrite) BOOL isLoading;
+
+@property (nonatomic, strong, readwrite) NSLock *lock;
 
 @end
 
@@ -53,7 +59,9 @@
 
 - (void)dealloc
 {
-    [self cancelAllRequests];
+    if (self.isLoading) {
+        [self cancelAllRequests];
+    }
     self.requestPool = nil;
     self.cacheHelper = nil;
     self.netProxy = nil;
@@ -86,6 +94,15 @@
     }
     
     return _cacheHelper;
+}
+
+- (NSLock *)lock {
+    if (!_lock) {
+        _lock = [[NSLock alloc] init];
+        _lock.name = EFNetHelperLockName;
+    }
+    
+    return _lock;
 }
 
 /**
@@ -127,9 +144,11 @@
     }
                                          progress:progressBlock
                                           success:^(EFNResponse * _Nullable response) {
+                                              Lock();
                                               if ([self.requestPool containsObject:response.requestID]) {
                                                   [self.requestPool removeObject:response.requestID];
                                               }
+                                              Unlock();
                                               id reformerData = nil;
                                               if (reformerConfig) {
                                                   id<EFNResponseDataReformer> reformer = reformerConfig();
@@ -149,9 +168,11 @@
                                               !responseBlock?:responseBlock(reformerData, response);
                                           }
                                           failure:^(EFNResponse * _Nullable response) {
+                                              Lock();
                                               if ([self.requestPool containsObject:response.requestID]) {
                                                   [self.requestPool removeObject:response.requestID];
                                               }
+                                              Unlock();
                                               id reformerData = nil;
                                               if (reformerConfig) {
                                                   id<EFNResponseDataReformer> reformer = reformerConfig();
@@ -243,8 +264,6 @@
     
     __weak typeof(self) _self = self;
     
-    self.isLoading = YES;
-    
     NSNumber *requestID = [self.netProxy request:request
                                   uploadProgress:uploadProgressBlock
                                 downloadProgress:downloadProgressBlock
@@ -252,10 +271,11 @@
                                              __strong typeof(_self) self = _self;
                                              
                                              if (self) {
-                                                 self.isLoading = NO;
+                                                 Lock();
                                                  if ([self.requestPool containsObject:response.requestID]) {
                                                      [self.requestPool removeObject:response.requestID];
                                                  }
+                                                 Unlock();
                                                  
                                                  // 缓存数据,并且只缓存无错误的数据
                                                  if (request.enableCache && response.isCache == NO && response.error == nil) {
@@ -267,15 +287,18 @@
                                          } failure:^(EFNResponse * _Nullable response) {
                                              __strong typeof(_self) self = _self;
                                              if (self) {
-                                                 self.isLoading = NO;
+                                                 Lock();
                                                  if ([self.requestPool containsObject:response.requestID]) {
                                                      [self.requestPool removeObject:response.requestID];
                                                  }
+                                                 Unlock();
                                              }
                                              EFN_SAFE_BLOCK(failureBlock, response);
                                          }];
     if (requestID) {
+        Lock();
         [self.requestPool addObject:requestID];
+        Unlock();
     }
     
     return requestID;
@@ -456,20 +479,26 @@
 - (void)cancelAllRequests
 {
     [self.netProxy cancelWithRequestIDList:self.requestPool];
+    Lock();
     [self.requestPool removeAllObjects];
+    Unlock();
 }
 
 - (void)cancelWithRequestID:(NSNumber *_Nonnull)requestID
 {
+    Lock();
     NSAssert([self.requestPool containsObject:requestID], @"当前要取消的请求任务不在该网络管理类的请求池中");
     [self.netProxy cancelWithRequestID:requestID];
     [self.requestPool removeObject:requestID];
+    Unlock();
 }
 
 - (void)cancelWithRequestIDList:(NSArray<NSNumber *> *_Nonnull)requestIDList
 {
     [self.netProxy cancelWithRequestIDList:requestIDList];
+    Lock();
     [self.requestPool removeObjectsInArray:requestIDList];
+    Unlock();
 }
 
 @end
@@ -504,7 +533,7 @@
     
     NSString *url = request.server.copy;
     if (!url) {
-        url = EFNetHelper.shareHelper.config.generalServer;
+        url = [EFNDefaultConfig shareConfig].generalServer;
     }
     
     if (!url) return @"";
