@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/Dandre126/EFNetworking.svg?branch=master)](https://travis-ci.org/Dandre126/EFNetworking)
 [![Version](https://img.shields.io/cocoapods/v/EFNetworking.svg?style=flat)](http://cocoapods.org/pods/EFNetworking)
-[![License](https://img.shields.io/cocoapods/l/EFNetworking.svg?style=flat)](http://cocoapods.org/pods/EFNetworking)
+[![License MIT](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/DandreYang/EFNetworking/master/LICENSE)
 [![Platform](https://img.shields.io/cocoapods/p/EFNetworking.svg?style=flat)](http://cocoapods.org/pods/EFNetworking)
 ## 
 iOS网络层组件，支持POST/GET/PUT/DELETE等网络请求和上传下载及断点续传功能，自带网络缓存处理机制、灵活设置接口签名、自定义HEADER和公共参数等功能
