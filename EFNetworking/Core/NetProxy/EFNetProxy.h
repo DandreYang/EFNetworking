@@ -9,18 +9,6 @@
 #import <Foundation/Foundation.h>
 #import "EFNHeader.h"
 
-#ifndef _EFN_USE_AFNETWORKING_
-    #define _EFN_USE_AFNETWORKING_ 1
-#endif
-
-#if _EFN_USE_AFNETWORKING_
-    #if __has_include(<AFNetworking/AFNetworking.h>)
-        #import <AFNetworking/AFNetworking.h>
-    #else
-        #import "AFNetworking.h"
-    #endif
-#endif
-
 /**
  * 网络请求处理类（代理网关）
  *

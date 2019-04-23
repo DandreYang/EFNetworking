@@ -10,6 +10,13 @@
 #import "NSString+EFNetworking.h"
 #import "NSDictionary+EFNetworking.h"
 #import "NSArray+EFNetworking.h"
+#if __has_include(<YYCache/YYCache.h>)
+#import <YYCache/YYCache.h>
+#elif __has_include(<YYWebImage/YYCache.h>)
+#import <YYWebImage/YYCache.h>
+#else
+#import "YYCache.h"
+#endif
 
 @interface EFNCacheHelper ()
 

@@ -9,13 +9,6 @@
 #import <Foundation/Foundation.h>
 #import "EFNRequest.h"
 #import "EFNResponse.h"
-#if __has_include(<YYCache/YYCache.h>)
-    #import <YYCache/YYCache.h>
-#elif __has_include(<YYWebImage/YYCache.h>)
-    #import <YYWebImage/YYCache.h>
-#else
-    #import "YYCache.h"
-#endif
 
 /**
  网络层缓存管理器

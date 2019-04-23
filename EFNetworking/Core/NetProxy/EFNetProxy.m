@@ -8,6 +8,18 @@
 
 #import "EFNetProxy.h"
 
+#ifndef _EFN_USE_AFNETWORKING_
+#define _EFN_USE_AFNETWORKING_ 1
+#endif
+
+#if _EFN_USE_AFNETWORKING_
+#if __has_include(<AFNetworking/AFNetworking.h>)
+#import <AFNetworking/AFNetworking.h>
+#else
+#import "AFNetworking.h"
+#endif
+#endif
+
 #define Lock() [self.lock lock]
 #define Unlock() [self.lock unlock]
 
