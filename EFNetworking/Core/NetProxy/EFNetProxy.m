@@ -261,7 +261,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
                                                                             attributes:nil
                                                                                  error:nil];
             if (!createSuccess) {
-                NSLog(@"EFNetProxy:创建下载路径失败");
+                EFNLog(@"EFNetProxy:创建下载路径失败");
                 return @(0);
             }
             
@@ -483,7 +483,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 - (void)resumeWithRequestID:(NSNumber *_Nonnull)requestID
 {
     if (!requestID) {
-        NSLog(@"requestID is nil");
+        EFNLog(@"requestID is nil");
         return;
     }
     Lock();
@@ -520,7 +520,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 - (void)suspendWithRequestID:(NSNumber *_Nonnull)requestID
 {
     if (!requestID) {
-        NSLog(@"requestID is nil");
+        EFNLog(@"requestID is nil");
         return;
     }
     Lock();
@@ -558,7 +558,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 - (void)cancelWithRequestID:(NSNumber *)requestID
 {
     if (!requestID) {
-        NSLog(@"requestID is nil");
+        EFNLog(@"requestID is nil");
         return;
     }
     Lock();

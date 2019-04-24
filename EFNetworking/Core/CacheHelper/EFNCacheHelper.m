@@ -131,7 +131,7 @@
 {
     // 缓存时使用异步，不阻碍主线程
     [self.cache setObject:object forKey:key withBlock:^{
-        NSLog(@"缓存数据成功");
+        EFNLog(@"缓存数据成功");
     }];
 }
 
