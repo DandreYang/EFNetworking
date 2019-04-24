@@ -88,13 +88,13 @@
  发起请求，带进度
 
  @param configRequestBlock 请求配置回调
- @param rogressBlock 进度回调
+ @param progressBlock 进度回调
  @param successBlock 请求成功回调
  @param failureBlock 请求失败回调
  @return 请求任务ID
  */
 - (NSNumber *_Nullable)request:(EFNConfigRequestBlock _Nonnull)configRequestBlock
-                      progress:(EFNProgressBlock _Nullable)rogressBlock
+                      progress:(EFNProgressBlock _Nullable)progressBlock
                        success:(EFNCallBlock _Nullable )successBlock
                        failure:(EFNCallBlock _Nullable )failureBlock;
 
@@ -202,31 +202,6 @@
 
 #pragma mark - 默认全局配置
 @interface EFNDefaultConfig :NSObject <EFNGeneralConfigDelegate>
-
-/**
- 全局服务器配置
- */
-@property (nonatomic, copy, nullable) NSString *generalServer;
-/**
- 全局通用参数配置
- */
-@property (nonatomic, strong, nullable) NSDictionary<NSString *, id> *generalParameters;
-/**
- 全局通用HEADER配置
- */
-@property (nonatomic, strong, nullable) NSDictionary<NSString *, NSString *> *generalHeaders;
-/**
- 全局通用下载保存路径, 只能是文件夹，否则会覆盖文件
- */
-@property (nonatomic, copy, nullable) NSString *generalDownloadSavePath;
-
-@property (nonatomic, strong, nullable) NSSet *generalRequestSerializerTypes;
-@property (nonatomic, strong, nullable) NSSet *generalResponseSerializerTypes;
-
-/**
- 签名服务代理 可以设置签名、认证等信息
- */
-@property (nonatomic, strong, nullable) id <EFNSignService> signService;
 
 /**
  默认配置单例

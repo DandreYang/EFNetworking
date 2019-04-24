@@ -206,7 +206,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
 }
 
 - (NSNumber *_Nullable)request:(EFNConfigRequestBlock _Nonnull)configRequestBlock
-                      progress:(EFNProgressBlock _Nullable)rogressBlock
+                      progress:(EFNProgressBlock _Nullable)progressBlock
                        success:(EFNCallBlock _Nullable )successBlock
                        failure:(EFNCallBlock _Nullable )failureBlock
 {
@@ -219,14 +219,14 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
                               dispatch_efn_async_main_safe(^{
                                   if (efnRequest.requestType == EFNRequestTypeStreamUpload ||
                                       efnRequest.requestType == EFNRequestTypeFormDataUpload ) {
-                                      EFN_SAFE_BLOCK(rogressBlock, progress);
+                                      EFN_SAFE_BLOCK(progressBlock, progress);
                                   }
                               });
                           }
                         downloadProgress:^(NSProgress * _Nullable progress) {
                             dispatch_efn_async_main_safe(^{
                                 if (efnRequest.requestType == EFNRequestTypeDownload) {
-                                    EFN_SAFE_BLOCK(rogressBlock, progress);
+                                    EFN_SAFE_BLOCK(progressBlock, progress);
                                 }
                             });
                         }
@@ -320,7 +320,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
     
     if (request.url.length == 0) {
         
-        if (request.server.length == 0 && request.enableGeneralServer && self.config && self.config.generalServer.length > 0) {
+        if (request.server.length == 0 && request.enableGeneralServer && self.config.generalServer.length > 0) {
             request.server = self.config.generalServer;
         }
         
@@ -342,11 +342,6 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
     
     NSParameterAssert(request.url);
     
-    if (!self.config) {
-        NSLog(@"网络全局配置代理不存在");
-        return;
-    }
-    
     if (!request.signService || ![request.signService respondsToSelector:@selector(signForRequest:)]) {
         request.signService = self.config.signService;
     }
@@ -362,12 +357,12 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
         request.headers = headers;
     }
     
-    if (!request.requestSerializerTypes && self.config.generalRequestSerializerTypes.count) {
-        request.requestSerializerTypes = [NSSet setWithSet:self.config.generalRequestSerializerTypes];
+    if (!request.requestSerializerType) {
+        request.requestSerializerType = self.config.generalRequestSerializerType;
     }
     
-    if (!request.responseSerializerTypes && self.config.generalResponseSerializerTypes.count) {
-        request.responseSerializerTypes = [NSSet setWithSet:self.config.generalResponseSerializerTypes];
+    if (!request.responseSerializerType) {
+        request.responseSerializerType = self.config.generalResponseSerializerType;
     }
     
     if (request.enableGeneralParameters && self.config.generalParameters.count > 0) {
@@ -562,5 +557,29 @@ static EFNDefaultConfig *config = nil;
     
     return config;
 }
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        self.generalRequestSerializerType = EFNRequestSerializerTypeHTTP;
+        self.generalResponseSerializerType = EFNResponseSerializerTypeJSON;
+    }
+    return self;
+}
+
+@synthesize generalDownloadSavePath;
+
+@synthesize generalHeaders;
+
+@synthesize generalParameters;
+
+@synthesize generalRequestSerializerType;
+
+@synthesize generalResponseSerializerType;
+
+@synthesize generalServer;
+
+@synthesize signService;
 
 @end
