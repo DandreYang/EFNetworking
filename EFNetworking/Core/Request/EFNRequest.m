@@ -28,15 +28,7 @@ static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.l
     if (self) {
         _requestType = EFNRequestTypeGeneral;
         _HTTPMethod = EFNHTTPMethodPOST;
-        _requestSerializerTypes = nil;
-        _responseSerializerTypes = [NSSet setWithObjects:
-                                   @"application/json",
-                                   @"text/xml",
-                                   @"text/html",
-                                   @"text/plain",
-                                   nil];
         _timeoutInterval = 60.0;
-        
         _enableGeneralServer = YES;
         _enableGeneralHeaders = YES;
         _enableGeneralParameters = YES;

@@ -32,6 +32,38 @@ typedef NS_ENUM(NSInteger, EFNHTTPMethod) {
     EFNHTTPMethodPATCH  = 5,    // PATCH
 };
 
+/**
+ 请求体序列化类型
+ 
+ - EFNRequestSerializerTypeHTTP: HTTP：默认类型
+ - EFNRequestSerializerTypeJSON: JSON：默认会将请求头中的`Content-Type`设置为`application/json`,并且将请求体编码成JSON格式
+ - EFNRequestSerializerTypePlist: Plist：默认会将请求头中的`Content-Type`设置为`application/x-plist`,并且将请求体编码成PropertyList格式
+ */
+typedef NS_ENUM(NSInteger, EFNRequestSerializerType) {
+    EFNRequestSerializerTypeHTTP    = 1,
+    EFNRequestSerializerTypeJSON    = 2,
+    EFNRequestSerializerTypePlist   = 3
+};
+
+/**
+ 响应体序列化类型
+ 
+ - EFNResponseSerializerTypeHTTP: HTTP：默认类型
+ - EFNResponseSerializerTypeJSON: JSON：支持接收的 MIME 类型: `application/json` 、 `text/json` 或 `text/javascript`
+ - EFNResponseSerializerTypeXML: XML：支持接收的 MIME 类型: `application/xml` 或 `text/xml`
+ - EFNResponseSerializerTypePlist: Plist：支持接收的 MIME 类型: `application/x-plist`
+ - EFNResponseSerializerTypeXMLDocument: XMLDocument(MacOS支持)：支持接收的 MIME 类型: `application/xml` 或 `text/xml`
+ */
+typedef NS_ENUM(NSInteger, EFNResponseSerializerType) {
+    EFNResponseSerializerTypeHTTP           = 1,
+    EFNResponseSerializerTypeJSON           = 2,
+    EFNResponseSerializerTypeXML            = 3,
+    EFNResponseSerializerTypePlist          = 4,
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+    EFNResponseSerializerTypeXMLDocument    = 5
+#endif
+};
+
 @class EFNUploadFormData;
 
 /**
@@ -100,8 +132,15 @@ typedef NS_ENUM(NSInteger, EFNHTTPMethod) {
  */
 @property (nonatomic, assign) EFNHTTPMethod HTTPMethod;
 
-@property (nonatomic, copy, nullable) NSSet *requestSerializerTypes;    // 默认application/json
-@property (nonatomic, copy, nullable) NSSet *responseSerializerTypes;   // 默认application/json
+/**
+ 配置 RequestSerializerType, 默认为 EFNRequestSerializerTypeHTTP（参考EFNDefaultConfig的默认值）
+ */
+@property (nonatomic, assign) EFNRequestSerializerType requestSerializerType;
+
+/**
+ 配置 ResponseSerializerType，默认为 EFNResponseSerializerTypeJSON（参考EFNDefaultConfig的默认值）
+ */
+@property (nonatomic, assign) EFNResponseSerializerType responseSerializerType;
 
 /**
  请求超时的时间，默认取generalTimeoutInterval

@@ -28,6 +28,12 @@
         dispatch_async(dispatch_get_main_queue(), block);\
     }
 
+#if DEBUG
+    #define EFNLog(format, ...) NSLog(format, ##__VA_ARGS__)
+#else
+    #define EFNLog(format, ...) {}
+#endif
+
 /**
  请求配置Block
 
@@ -90,13 +96,13 @@ typedef NS_ENUM(NSInteger, EFNReachableStatus) {
  */
 @property (nonatomic, copy, nullable) NSString *generalDownloadSavePath;
 /**
- 全局 RequestSerializerTypes
+ 全局配置 RequestSerializerType
  */
-@property (nonatomic, strong, nullable) NSSet *generalRequestSerializerTypes;
+@property (nonatomic, assign) EFNRequestSerializerType generalRequestSerializerType;
 /**
- 全局 ResponseSerializerTypes
+ 全局配置 ResponseSerializerType
  */
-@property (nonatomic, strong, nullable) NSSet *generalResponseSerializerTypes;
+@property (nonatomic, assign) EFNResponseSerializerType generalResponseSerializerType;
 
 /**
  签名服务代理 可以设置签名、认证等信息
