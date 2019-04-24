@@ -34,12 +34,7 @@
         // 设置通用参数
         config.generalParameters = @{@"generalParameterKey":@"generalParameterValue"};
         // 设置全局支持响应的数据类型
-        config.generalResponseSerializerTypes = [NSSet setWithObjects:
-                                                 @"application/json",
-                                                 @"text/xml",
-                                                 @"text/html",
-                                                 @"text/plain",
-                                                 nil];
+        config.generalResponseSerializerType = EFNResponseSerializerTypeJSON;
         
         // 这里设置的下载文件保存路径是对全局有效的，所以建议设置的路径是指定到文件夹而不是文件，否则后下载的文件会将之前下载的文件进行覆盖
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -110,8 +105,8 @@
         request.HTTPMethod = EFNHTTPMethodPOST;     // Request 默认HTTPMethod为POST，如果为POST，此句代码可不写
         request.parameters = @{@"key": @"value"};
         request.headers = @{@"key": @"value"};
-        request.requestSerializerTypes = [NSSet setWithObjects:@"application/json",@"text/plain", nil];
-        request.responseSerializerTypes = [NSSet setWithObjects:@"application/json",@"application/xml", nil];
+        request.requestSerializerType = EFNRequestSerializerTypeHTTP;
+        request.responseSerializerType = EFNResponseSerializerTypeJSON;
     }
                               progress:^(NSProgress * _Nullable progress) {
                                   NSLog(@"progress:%@", progress);

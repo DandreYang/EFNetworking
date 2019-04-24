@@ -113,7 +113,7 @@
         request.headers = @{@"key": @"value"};
         
         // 如果单一接口响应的数据类型 不在全局配置设定的范围，在这里可以单独设置
-        request.responseSerializerTypes = [NSSet setWithObjects:@"application/json",@"application/xml", nil];
+        request.responseSerializerType = EFNResponseSerializerTypeJSON;
     }
                               progress:^(NSProgress * _Nullable progress) {
                                   NSLog(@"progress:%@", progress);

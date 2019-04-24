@@ -28,12 +28,6 @@
         dispatch_async(dispatch_get_main_queue(), block);\
     }
 
-#if DEBUG
-    #define EFNLog(format, ...) NSLog(format, ##__VA_ARGS__)
-#else
-    #define EFNLog(format, ...) {}
-#endif
-
 /**
  请求配置Block
 

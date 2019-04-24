@@ -50,12 +50,7 @@
         // 设置通用参数
         config.generalParameters = @{@"generalParameterKey":@"generalParameterValue"};
         // 设置全局支持响应的数据类型
-        config.generalResponseSerializerTypes = [NSSet setWithObjects:
-                                                 @"application/json",
-                                                 @"text/xml",
-                                                 @"text/html",
-                                                 @"text/plain",
-                                                 nil];
+        config.generalResponseSerializerType = EFNResponseSerializerTypeJSON;
         
         // 这里设置的下载文件保存路径是对全局有效的，所以建议设置的路径是指定到文件夹而不是文件，否则后下载的文件会将之前下载的文件进行覆盖
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -68,8 +63,23 @@
 
 - (void)testNetHelper
 {
-    NSLog(@"shareNetHelper:%p",EFNetHelper.shareHelper);
-    NSLog(@"newNetHelper:%p",EFNetHelper.helper);
+    EFNetHelper *shareHelper = EFNetHelper.shareHelper;
+    EFNetHelper *newHelper = EFNetHelper.helper;
+    NSLog(@"\n=========================\n");
+    NSLog(@"shareNetHelper:%p",shareHelper);
+    NSLog(@"newNetHelper:%p",newHelper);
+    NSLog(@"shareNetHelper.config:%p",shareHelper.config);
+    NSLog(@"newNetHelper.config:%p",newHelper.config);
+    NSLog(@"\n=========================\n");
+}
+
+
+- (void)testURLComponents {
+    NSURLComponents *urlComponents = [[NSURLComponents alloc] initWithString:@"api/getuserInfo?user=1000&code=200"];
+    
+    NSLog(@"urlComponents.path:%@", urlComponents.path);
+    NSLog(@"urlComponents.query:%@", urlComponents.query);
+
 }
 
 @end

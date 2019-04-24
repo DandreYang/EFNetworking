@@ -46,8 +46,8 @@
         request.HTTPMethod = EFNHTTPMethodPUT;     
         request.parameters = @{@"key": @"value"};
         request.headers = @{@"key": @"value"};
-        request.requestSerializerTypes = [NSSet setWithObjects:@"application/json",@"text/plain", nil];
-        request.responseSerializerTypes = [NSSet setWithObjects:@"application/json",@"application/xml", nil];
+        request.requestSerializerType = EFNRequestSerializerTypeHTTP;
+        request.responseSerializerType = EFNResponseSerializerTypeJSON;
     }
                               progress:^(NSProgress * _Nullable progress) {
                                   NSLog(@"progress:%@", progress);

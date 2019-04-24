@@ -8,6 +8,12 @@
 
 #import <Foundation/Foundation.h>
 
+#if DEBUG
+#define EFNLog(format, ...) NSLog(format, ##__VA_ARGS__)
+#else
+#define EFNLog(format, ...) {}
+#endif
+
 @protocol EFNSignService;
 /**
  请求类型 常规/上传/下载

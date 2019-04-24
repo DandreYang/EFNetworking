@@ -85,8 +85,6 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
     if (!_sessionManager) {
         _sessionManager = [AFHTTPSessionManager manager];
         _sessionManager.operationQueue.maxConcurrentOperationCount = 5;
-        _sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
-        _sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
     }
     
     if (_enableHTTPS) {
@@ -149,46 +147,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 #endif
 }
 
-- (NSString *)getHTTPMethodWithRequest:(EFNRequest *)request
-{
-    NSString *httpMethod = nil;
-    static dispatch_once_t onceToken;
-    static NSArray *httpMethodArray = nil;
-    dispatch_once(&onceToken, ^{
-        httpMethodArray = @[@"POST", @"GET", @"HEAD", @"DELETE", @"PUT", @"PATCH"];
-    });
-    
-    if (request.HTTPMethod >= 0 && request.HTTPMethod < httpMethodArray.count) {
-        httpMethod = httpMethodArray[request.HTTPMethod];
-    }
-    
-    NSAssert(httpMethod.length > 0, @"The HTTP method not found.");
-    
-    return httpMethod;
-}
-
-#pragma mark - 配置URLRequest
-- (void)configURLRequest:(NSMutableURLRequest *)urlRequest withEFNRequest:(EFNRequest *)request
-{
-    NSParameterAssert(request);
-    
-    if (!urlRequest) {
-        return;
-    }
-    
-    if (request.headers.count > 0) {
-        [request.headers enumerateKeysAndObjectsUsingBlock:^(id field, id value, BOOL * __unused stop) {
-            [urlRequest setValue:value forHTTPHeaderField:field];
-        }];
-    }
-#if _EFN_USE_AFNETWORKING_
-    self.sessionManager.responseSerializer.acceptableContentTypes = [NSSet setWithSet:request.responseSerializerTypes];
-    self.sessionManager.requestSerializer.timeoutInterval = request.timeoutInterval;
-#endif
-    urlRequest.timeoutInterval = request.timeoutInterval;
-}
-
-#pragma mark - Methods
+#pragma mark - Request Methods
 - (NSNumber *_Nonnull)request:(EFNRequest * _Nonnull)request
                uploadProgress:(EFNProgressBlock)uploadProgressBlock
              downloadProgress:(EFNProgressBlock)downloadProgressBlock
@@ -211,15 +170,8 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
                     failure:failureBlock];
     }
     
-    NSString *HTTPMethod = [self getHTTPMethodWithRequest:request];
-    
     NSError *serializationError = nil;
-
-    NSMutableURLRequest *urlRequest = [self.sessionManager.requestSerializer requestWithMethod:HTTPMethod
-                                                                                  URLString:request.url
-                                                                                 parameters:request.parameters
-                                                                                      error:&serializationError];
-    [self configURLRequest:urlRequest withEFNRequest:request];
+    NSMutableURLRequest *urlRequest = [self urlRequestForEFNRequest:request error:&serializationError];
     
     if (serializationError) {
         if (failureBlock) {
@@ -319,11 +271,47 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
         }
     }
     
-    NSMutableURLRequest *urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:request.url]];
-    
-    [self configURLRequest:urlRequest withEFNRequest:request];
     NSNumber *requestID = nil;
+    NSError *serializationError = nil;
+    NSMutableURLRequest *urlRequest = [self urlRequestForEFNRequest:request error:&serializationError];
+    
+    if (serializationError) {
+        if (failureBlock) {
+            EFNResponse *response = [[EFNResponse alloc] initWithRequestID:nil
+                                                                urlRequest:urlRequest
+                                                            responseObject:nil
+                                                               urlResponse:nil
+                                                                     error:serializationError];
+            dispatch_async(self.sessionManager.completionQueue ?: dispatch_get_main_queue(), ^{
+                failureBlock(response);
+            });
+        }
+        
+        return nil;
+    }
+    
 #if _EFN_USE_AFNETWORKING_
+    
+    /// 统一处理回调
+    void (^completionBlock)(__kindof NSURLSessionTask *task, id responseObject, NSError *error) = ^(__kindof NSURLSessionTask *task, id responseObject, NSError *error) {
+        NSNumber *requestID = @(task.taskIdentifier);
+        Lock();
+        [self.dispatchPool removeObjectForKey:requestID];
+        Unlock();
+        
+        EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
+                                                               urlRequest:task.originalRequest
+                                                           responseObject:responseObject
+                                                              urlResponse:(NSHTTPURLResponse *)task.response
+                                                                    error:error];
+        
+        if (error) {
+            EFN_SAFE_BLOCK(failureBlock, efnResponse);
+        } else {
+            EFN_SAFE_BLOCK(successBlock, efnResponse);
+        }
+    };
+
     __block NSURLSessionDownloadTask *downloadTask = nil;
     
     NSData *resumeData = nil;
@@ -335,34 +323,28 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
         }
     }
     // 判断该下载任务是否可以被重新唤起（断点下载）
-    BOOL canResume = request.enableResumeDownload && resumeData;
+    BOOL canResume = request.enableResumeDownload && resumeData && [resumeData length] > 0;
+    BOOL resumeDownloadSuccess = NO;
     if (canResume) {
-        downloadTask = [self.sessionManager downloadTaskWithResumeData:resumeData
-                                                              progress:^(NSProgress * _Nonnull downloadProgress) {
-                                                                  EFN_SAFE_BLOCK(progressBlock, downloadProgress);
-                                                              }
-                                                           destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-                                                               return downloadFileSavePathURL;
-                                                           }
-                                                     completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-                                                         NSNumber *requestID = @(downloadTask.taskIdentifier);
-                                                         Lock();
-                                                         [self.dispatchPool removeObjectForKey:requestID];
-                                                         Unlock();
-                                                         
-                                                         EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
-                                                                                                                   urlRequest:urlRequest
-                                                                                                            responseObject:filePath
-                                                                                                                  urlResponse:(NSHTTPURLResponse *)response
-                                                                                                                     error:error];
-                                                         
-                                                         if (error) {
-                                                             EFN_SAFE_BLOCK(failureBlock, efnResponse);
-                                                         }else{
-                                                             EFN_SAFE_BLOCK(successBlock, efnResponse);
-                                                         }
-                                                     }];
-    }else{
+        @try {
+            resumeDownloadSuccess = YES;
+            downloadTask = [self.sessionManager downloadTaskWithResumeData:resumeData
+                                                                  progress:^(NSProgress * _Nonnull downloadProgress) {
+                                                                      EFN_SAFE_BLOCK(progressBlock, downloadProgress);
+                                                                  }
+                                                               destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
+                                                                   return downloadFileSavePathURL;
+                                                               }
+                                                         completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
+                                                             completionBlock(downloadTask, filePath, error);
+                                                         }];
+        } @catch (NSException *exception) {
+            resumeDownloadSuccess = NO;
+            EFNLog(@"断点下载失败，失败原因：%@", exception.reason);
+        }
+    }
+    
+    if (!resumeDownloadSuccess) {
         downloadTask = [self.sessionManager downloadTaskWithRequest:urlRequest
                                                            progress:^(NSProgress * _Nonnull downloadProgress) {
                                                                EFN_SAFE_BLOCK(progressBlock, downloadProgress);
@@ -371,24 +353,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
                                                             return downloadFileSavePathURL;
                                                         }
                                                   completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-                                                      
-                                                      NSNumber *requestID = @(downloadTask.taskIdentifier);
-                                                      Lock();
-                                                      [self.dispatchPool removeObjectForKey:requestID];
-                                                      Unlock();
-                                                      
-                                                      EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
-                                                                                                                urlRequest:urlRequest
-                                                                                                         responseObject:filePath
-                                                                                                               urlResponse:(NSHTTPURLResponse *)response
-                                                                                                                  error:error];
-                                                      
-                                                      if (error) {
-                                                          EFN_SAFE_BLOCK(failureBlock, efnResponse);
-                                                      }else{
-                                                          EFN_SAFE_BLOCK(successBlock, efnResponse);
-                                                      }
-
+                                                      completionBlock(downloadTask, filePath, error);
                                                   }];
     }
     
@@ -405,7 +370,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
     return requestID;
 }
 
-#pragma mark - Upload
+#pragma mark - Upload Methods
 - (NSNumber *_Nonnull)upload:(EFNRequest * _Nonnull)request
                     progress:(EFNProgressBlock _Nullable )progressBlock
                      success:(EFNCallBlock _Nullable )successBlock
@@ -413,78 +378,93 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 {
     NSParameterAssert(request);
     NSParameterAssert(request.url);
+    NSAssert(request.requestType == EFNRequestTypeFormDataUpload || request.requestType == EFNRequestTypeStreamUpload, @"不支持的文件上传类型");
+    NSAssert(request.uploadFormDatas.count > 0, @"上传的文件数据不能为空");
+    /// 统一处理回调
+    void (^completionBlock)(__kindof NSURLSessionTask *task, id responseObject, NSError *error) = ^(__kindof NSURLSessionTask *task, id responseObject, NSError *error) {
+        NSNumber *requestID = @(task.taskIdentifier);
+        Lock();
+        [self.dispatchPool removeObjectForKey:requestID];
+        Unlock();
+        
+        EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
+                                                               urlRequest:task.originalRequest
+                                                           responseObject:responseObject
+                                                              urlResponse:(NSHTTPURLResponse *)task.response
+                                                                    error:error];
+        
+        if (error) {
+            EFN_SAFE_BLOCK(failureBlock, efnResponse);
+        } else {
+            EFN_SAFE_BLOCK(successBlock, efnResponse);
+        }
+    };
+    
 #if _EFN_USE_AFNETWORKING_
-    if (request.requestType == EFNRequestTypeFormDataUpload) {
-        __block NSURLSessionDataTask *uploadTask = nil;
-        uploadTask = [self.sessionManager POST:request.url
-                                    parameters:request.parameters
-                     constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
-                         [request.uploadFormDatas enumerateObjectsUsingBlock:^(EFNUploadFormData *obj, NSUInteger idx, BOOL *stop) {
-                             if (obj.fileData) {
-                                 if (obj.fileName && obj.mimeType) {
-                                     [formData appendPartWithFileData:obj.fileData name:obj.name fileName:obj.fileName mimeType:obj.mimeType];
-                                 } else {
-                                     [formData appendPartWithFormData:obj.fileData name:obj.name];
-                                 }
-                             } else if (obj.fileURL) {
-                                 NSError *fileError = nil;
-                                 if (obj.fileName && obj.mimeType) {
-                                     [formData appendPartWithFileURL:obj.fileURL name:obj.name fileName:obj.fileName mimeType:obj.mimeType error:&fileError];
-                                 } else {
-                                     [formData appendPartWithFileURL:obj.fileURL name:obj.name error:&fileError];
-                                 }
-                                 if (fileError) {
-                                     *stop = YES;
-                                 }
-                             }
-                         }];
-                     }
-                                      progress:^(NSProgress * _Nonnull uploadProgress) {
-                                          EFN_SAFE_BLOCK(progressBlock, uploadProgress);
-                                      }
-                                       success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-                                           NSNumber *requestID = @(uploadTask.taskIdentifier);
-                                           Lock();
-                                           [self.dispatchPool removeObjectForKey:requestID];
-                                           Unlock();
-                                           
-                                           EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
-                                                                                                     urlRequest:task.originalRequest
-                                                                                              responseObject:responseObject
-                                                                                                    urlResponse:((NSHTTPURLResponse *)task.response)
-                                                                                                       error:nil];
-                                           
-                                           EFN_SAFE_BLOCK(successBlock, efnResponse);
-                                       }
-                                       failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-                                           NSNumber *requestID = @(uploadTask.taskIdentifier);
-                                           Lock();
-                                           [self.dispatchPool removeObjectForKey:requestID];
-                                           Unlock();
-                                           
-                                           EFNResponse *efnResponse = [[EFNResponse alloc] initWithRequestID:requestID
-                                                                                                     urlRequest:task.originalRequest
-                                                                                              responseObject:nil
-                                                                                                    urlResponse:((NSHTTPURLResponse *)task.response)
-                                                                                                       error:error];
-                                           
-                                           EFN_SAFE_BLOCK(failureBlock, efnResponse);
-                                       }];
-        
-        NSNumber *requestID = @(uploadTask.taskIdentifier);
-        
-        if (requestID && uploadTask) {
-            Lock();
-            self.dispatchPool[requestID] = uploadTask;
-            Unlock();
-            [uploadTask resume];
+    
+    NSError *serializationError = nil;
+    NSMutableURLRequest *urlRequest = nil;
+
+    urlRequest = [self urlRequestForEFNRequest:request error:&serializationError];
+    
+    if (serializationError) {
+        if (failureBlock) {
+            EFNResponse *response = [[EFNResponse alloc] initWithRequestID:nil
+                                                                urlRequest:urlRequest
+                                                            responseObject:nil
+                                                               urlResponse:nil
+                                                                     error:serializationError];
+            dispatch_async(self.sessionManager.completionQueue ?: dispatch_get_main_queue(), ^{
+                failureBlock(response);
+            });
         }
         
-        return requestID;
-    }else{
-        NSAssert(NO, @"暂不支持文件流上传");
         return nil;
     }
+    
+    __block NSURLSessionUploadTask *uploadTask = nil;
+    
+    if (request.requestType == EFNRequestTypeFormDataUpload) {
+        uploadTask = [self.sessionManager uploadTaskWithStreamedRequest:urlRequest
+                                                               progress:progressBlock
+                                                      completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
+                                                          completionBlock(uploadTask, responseObject, error);
+                                                      }];
+    } else {
+        
+        EFNUploadFormData *uploadData = request.uploadFormDatas.firstObject;
+        
+        if (!uploadData) {
+            return nil;
+        }
+        
+        if (uploadData.fileURL) {
+            uploadTask = [self.sessionManager uploadTaskWithRequest:urlRequest
+                                                           fromFile:uploadData.fileURL
+                                                           progress:progressBlock
+                                                  completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
+                                                      completionBlock(uploadTask, responseObject, error);
+                                                  }];
+        } else {
+            uploadTask = [self.sessionManager uploadTaskWithRequest:urlRequest
+                                                           fromData:uploadData.fileData
+                                                           progress:progressBlock
+                                                  completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
+                                                      completionBlock(uploadTask, responseObject, error);
+                                                  }];
+        }
+    }
+    
+    NSNumber *requestID = @(uploadTask.taskIdentifier);
+    
+    if (requestID && uploadTask) {
+        Lock();
+        self.dispatchPool[requestID] = uploadTask;
+        Unlock();
+        [uploadTask resume];
+    }
+    
+    return requestID;
 #else
     return nil;
 #endif
@@ -604,6 +584,146 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
     Lock();
     [self.dispatchPool removeObjectsForKeys:requestIDList];
     Unlock();
+}
+
+#pragma mark - Private Methods
+
+#pragma mark 获取 requestSerializer
+- (__kindof NSObject *)requestSerializerForRequest:(EFNRequest *)request
+{
+#if _EFN_USE_AFNETWORKING_
+    AFHTTPRequestSerializer *requestSerializer = nil;
+    switch (request.requestSerializerType) {
+        case EFNRequestSerializerTypeJSON:
+            requestSerializer = [AFJSONRequestSerializer serializer];
+            break;
+        case EFNRequestSerializerTypePlist:
+            requestSerializer = [AFPropertyListRequestSerializer serializer];
+            break;
+        default:
+            requestSerializer = [AFHTTPRequestSerializer serializer];
+            break;
+    }
+    
+    requestSerializer.timeoutInterval = request.timeoutInterval;
+    
+    if (request.headers.count > 0) {
+        [request.headers enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull field, NSString * _Nonnull value, BOOL * _Nonnull stop) {
+            [self.sessionManager.requestSerializer setValue:value forHTTPHeaderField:field];
+        }];
+    }
+    
+    return requestSerializer;
+#else
+    return nil;
+#endif
+}
+
+#pragma mark - 获取 responseSerializer
+- (__kindof NSObject *)responseSerializerForRequest:(EFNRequest *)request
+{
+#if _EFN_USE_AFNETWORKING_
+    AFHTTPResponseSerializer *responseSerializer = nil;
+    switch (request.responseSerializerType) {
+        case EFNResponseSerializerTypeJSON:
+            responseSerializer = [AFJSONResponseSerializer serializer];
+            break;
+        case EFNResponseSerializerTypeXML:
+
+            break;
+        case EFNResponseSerializerTypePlist:
+            responseSerializer = [AFPropertyListResponseSerializer serializer];
+            break;
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+        case EFNResponseSerializerTypeXML:
+            responseSerializer = [AFXMLDocumentResponseSerializer serializer];
+            break;
+#endif
+        default:
+            responseSerializer = [AFHTTPResponseSerializer serializer];
+            break;
+    }
+    
+    return responseSerializer;
+#else
+    return nil;
+#endif
+}
+
+- (NSString *)getHTTPMethodWithRequest:(EFNRequest *)request
+{
+    NSString *httpMethod = nil;
+    static dispatch_once_t onceToken;
+    static NSArray *httpMethodArray = nil;
+    dispatch_once(&onceToken, ^{
+        httpMethodArray = @[@"POST", @"GET", @"HEAD", @"DELETE", @"PUT", @"PATCH"];
+    });
+    
+    if (request.HTTPMethod >= 0 && request.HTTPMethod < httpMethodArray.count) {
+        httpMethod = httpMethodArray[request.HTTPMethod];
+    }
+    
+    NSAssert(httpMethod.length > 0, @"The HTTP method not found.");
+    
+    return httpMethod;
+}
+
+- (NSMutableURLRequest *)urlRequestForEFNRequest:(EFNRequest *)request error:(NSError *__autoreleasing *)error
+{
+    self.sessionManager.requestSerializer = [self requestSerializerForRequest:request];
+    self.sessionManager.responseSerializer = [self responseSerializerForRequest:request];
+    NSString *HTTPMethod = [self getHTTPMethodWithRequest:request];
+    
+    NSParameterAssert(HTTPMethod);
+    NSParameterAssert(request.url);
+    
+    NSMutableURLRequest *urlRequest = nil;
+#if _EFN_USE_AFNETWORKING_
+    switch (request.requestType) {
+        case EFNRequestTypeFormDataUpload:
+        {
+            urlRequest = [self.sessionManager.requestSerializer multipartFormRequestWithMethod:@"POST"
+                                                                                     URLString:request.url
+                                                                                    parameters:(NSDictionary *)request.parameters
+                                                                     constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
+                                                                         [request.uploadFormDatas enumerateObjectsUsingBlock:^(EFNUploadFormData *obj, NSUInteger idx, BOOL *stop) {
+                                                                             if (obj.fileData) {
+                                                                                 if (obj.fileName && obj.mimeType) {
+                                                                                     [formData appendPartWithFileData:obj.fileData name:obj.name fileName:obj.fileName mimeType:obj.mimeType];
+                                                                                 } else {
+                                                                                     [formData appendPartWithFormData:obj.fileData name:obj.name];
+                                                                                 }
+                                                                             } else if (obj.fileURL) {
+                                                                                 NSError *fileError = nil;
+                                                                                 if (obj.fileName && obj.mimeType) {
+                                                                                     [formData appendPartWithFileURL:obj.fileURL name:obj.name fileName:obj.fileName mimeType:obj.mimeType error:&fileError];
+                                                                                 } else {
+                                                                                     [formData appendPartWithFileURL:obj.fileURL name:obj.name error:&fileError];
+                                                                                 }
+                                                                                 if (fileError) {
+                                                                                     *stop = YES;
+                                                                                 }
+                                                                             }
+                                                                         }];
+                                                                     } error:error];
+        }
+            break;
+        case EFNRequestTypeDownload:
+            urlRequest = [self.sessionManager.requestSerializer requestWithMethod:@"GET"
+                                                                        URLString:request.url
+                                                                       parameters:request.parameters
+                                                                            error:error];
+            break;
+        default:
+            urlRequest = [self.sessionManager.requestSerializer requestWithMethod:HTTPMethod
+                                                                        URLString:request.url
+                                                                       parameters:request.parameters
+                                                                            error:error];
+            break;
+    }
+#endif
+    
+    return urlRequest;
 }
 
 @end
