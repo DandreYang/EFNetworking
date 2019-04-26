@@ -88,6 +88,7 @@
 		AF89524622689D8D009ECADB /* DemoResponseModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoResponseModel.m; sourceTree = "<group>"; };
 		AF89524822689E7F009ECADB /* DemoRequestModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoRequestModel.h; sourceTree = "<group>"; };
 		AF89524922689E7F009ECADB /* DemoRequestModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoRequestModel.m; sourceTree = "<group>"; };
+		AF8CCF192271A0E20027637E /* MobileCoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileCoreServices.framework; path = System/Library/Frameworks/MobileCoreServices.framework; sourceTree = SDKROOT; };
 		AF922A34207B51ED006DB7CB /* EFNCacheHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EFNCacheHelper.h; sourceTree = "<group>"; };
 		AF922A35207B51ED006DB7CB /* EFNCacheHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EFNCacheHelper.m; sourceTree = "<group>"; };
 		AF922A38207C4AAD006DB7CB /* NSString+EFNetworking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSString+EFNetworking.h"; sourceTree = "<group>"; };
@@ -160,6 +161,7 @@
 		7850162C68CE07F6B502F261 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				AF8CCF192271A0E20027637E /* MobileCoreServices.framework */,
 				5DF9631859E7A2EFEF7BDA7E /* Pods_EFNetworking.framework */,
 				B86227478456C07D9C69AA00 /* Pods_EFNetworkingTests.framework */,
 			);

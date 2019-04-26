@@ -6,17 +6,27 @@
 //  Copyright © 2018年 Dandre.Vip All rights reserved.
 //
 
+#define EFNREQUEST_PROTECTED_ACCESS
 #import "EFNRequest.h"
+#import "NSDictionary+EFNetworking.h"
+#include <objc/runtime.h>
 
 #define Lock() [self.lock lock]
 #define Unlock() [self.lock unlock]
+
+EFNHTTPMethod const EFNHTTPMethodPOST       = @"POST";
+EFNHTTPMethod const EFNHTTPMethodGET        = @"GET";
+EFNHTTPMethod const EFNHTTPMethodHEAD       = @"HEAD";
+EFNHTTPMethod const EFNHTTPMethodDELETE     = @"DELETE";
+EFNHTTPMethod const EFNHTTPMethodPUT        = @"PUT";
+EFNHTTPMethod const EFNHTTPMethodPATCH      = @"PATCH";
 
 static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.lock";
 
 @interface EFNRequest ()
 
-@property (nonatomic, strong, readwrite) NSMutableArray<EFNUploadFormData *> *uploadDataArray;
-@property (nonatomic, strong) NSLock *lock;
+@property (nonatomic, strong, readwrite) NSMutableArray<__kindof EFNUploadData *> *uploadDataArray;
+@property (nonatomic, strong, readwrite) NSLock *lock;
 
 @end
 
@@ -39,7 +49,7 @@ static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.l
     return self;
 }
 
-- (NSMutableArray<EFNUploadFormData *> *)uploadDataArray {
+- (NSMutableArray<__kindof EFNUploadData *> *)uploadDataArray {
     if (!_uploadDataArray) {
         _uploadDataArray = @[].mutableCopy;
     }
@@ -55,96 +65,204 @@ static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.l
     return _lock;
 }
 
-- (void)setUploadFormDatas:(NSArray<EFNUploadFormData *> *)uploadFormDatas {
+- (void)setUploadFormDatas:(NSArray<__kindof EFNUploadData *> *)uploadFormDatas {
     Lock();
     self.uploadDataArray.count == 0?:[self.uploadDataArray removeAllObjects];
     uploadFormDatas.count == 0?:[self.uploadDataArray addObjectsFromArray:uploadFormDatas];
     Unlock();
 }
 
-- (NSArray<EFNUploadFormData *> *)uploadFormDatas {
+- (NSArray<__kindof EFNUploadData *> *)uploadFormDatas {
     return self.uploadDataArray.copy;
 }
 
-#pragma mark - Methods
-- (void)addFormDataWithName:(NSString *_Nullable)name fileData:(NSData *_Nonnull)fileData
-{
-    Lock();
-    [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileData:fileData]];
-    Unlock();
-}
+- (NSString *)description {
+    NSDictionary *dict = [NSDictionary efn_dictionaryWithObject:self];
+    NSString *desc = [NSString stringWithFormat:@"<%@: %p> => %@", [self class], self, dict];
 
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileData:(NSData *_Nonnull)fileData
-{
-    Lock();
-    [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName fileData:fileData]];
-    Unlock();
-}
-
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileData:(NSData *_Nonnull)fileData
-{
-    Lock();
-    [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName mimeType:mimeType fileData:fileData]];
-    Unlock();
-}
-
-- (void)addFormDataWithName:(NSString *_Nullable)name fileURL:(NSURL *_Nonnull)fileURL
-{
-    Lock();
-    [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileURL:fileURL]];
-    Unlock();
-}
-
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileURL:(NSURL *_Nonnull)fileURL
-{
-    Lock();
-    [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName fileURL:fileURL]];
-    Unlock();
-}
-
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileURL:(NSURL *_Nonnull)fileURL
-{
-    Lock();
-    [self.uploadDataArray addObject:[EFNUploadFormData formDataWithName:name fileName:fileName mimeType:mimeType fileURL:fileURL]];
-    Unlock();
+    return desc;
 }
 
 @end
 
-@implementation EFNUploadFormData
+@implementation EFNRequest (AppendUploadData)
 
-+ (instancetype)formDataWithName:(NSString *)name fileData:(NSData *)fileData {
-    return [self formDataWithName:name fileName:nil mimeType:nil fileData:fileData];
+- (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData
+{
+    Lock();
+    [self.uploadDataArray addObject:[[EFNUploadData alloc] initWithFileData:fileData]];
+    Unlock();
+    return YES;
 }
 
-+ (instancetype)formDataWithName:(NSString *)name fileName:(NSString *)fileName fileData:(NSData *)fileData {
-    return [self formDataWithName:name fileName:fileName mimeType:nil fileData:fileData];
+- (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name
+{
+    Lock();
+    [self.uploadDataArray addObject:[EFNMutipartFormData formDataWithFileData:fileData name:name]];
+    Unlock();
+    return YES;
 }
 
-+ (instancetype)formDataWithName:(NSString *)name fileName:(NSString *)fileName mimeType:(NSString *)mimeType fileData:(NSData *)fileData {
-    EFNUploadFormData *formData = [[self alloc] init];
-    formData.name = name;
-    formData.fileName = fileName;
-    formData.mimeType = mimeType;
-    formData.fileData = fileData;
-    return formData;
+- (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType
+{
+    Lock();
+    [self.uploadDataArray addObject:[EFNMutipartFormData formDataWithFileData:fileData name:name fileName:fileName mimeType:mimeType]];
+    Unlock();
+    return YES;
 }
 
-+ (instancetype)formDataWithName:(NSString *)name fileURL:(NSURL *)fileURL {
-    return [self formDataWithName:name fileName:nil mimeType:nil fileURL:fileURL];
+- (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL
+{
+    Lock();
+    [self.uploadDataArray addObject:[[EFNUploadData alloc] initWithFileURL:fileURL]];
+    Unlock();
+    return YES;
 }
 
-+ (instancetype)formDataWithName:(NSString *)name fileName:(NSString *)fileName fileURL:(NSURL *)fileURL {
-    return [self formDataWithName:name fileName:fileName fileURL:fileURL];
+- (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name
+{
+    Lock();
+    [self.uploadDataArray addObject:[EFNMutipartFormData formDataWithFileURL:fileURL name:name]];
+    Unlock();
+    return YES;
 }
 
-+ (instancetype)formDataWithName:(NSString *)name fileName:(NSString *)fileName mimeType:(NSString *)mimeType fileURL:(NSURL *)fileURL {
-    EFNUploadFormData *formData = [[self alloc] init];
-    formData.name = name;
-    formData.fileName = fileName;
-    formData.mimeType = mimeType;
-    formData.fileURL = fileURL;
-    return formData;
+- (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType
+{
+    Lock();
+    [self.uploadDataArray addObject:[EFNMutipartFormData formDataWithFileURL:fileURL name:name fileName:fileName mimeType:mimeType]];
+    Unlock();
+    return YES;
+}
+
+@end
+
+@implementation EFNRequest (Deprecated)
+
+#pragma mark - Methods
+- (void)addFormDataWithName:(NSString *_Nullable)name fileData:(NSData *_Nonnull)fileData
+{
+    [self appendUploadDataWithFileData:fileData name:name];
+}
+
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileData:(NSData *_Nonnull)fileData
+{
+    [self appendUploadDataWithFileData:fileData name:name fileName:name mimeType:nil];
+}
+
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileData:(NSData *_Nonnull)fileData
+{
+    [self appendUploadDataWithFileData:fileData name:name fileName:fileName mimeType:mimeType];
+}
+
+- (void)addFormDataWithName:(NSString *_Nullable)name fileURL:(NSURL *_Nonnull)fileURL
+{
+    [self appendUploadDataWithFileURL:fileURL name:name];
+}
+
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileURL:(NSURL *_Nonnull)fileURL
+{
+    [self appendUploadDataWithFileURL:fileURL name:name fileName:fileName mimeType:nil];
+}
+
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileURL:(NSURL *_Nonnull)fileURL
+{
+    [self appendUploadDataWithFileURL:fileURL name:name fileName:fileName mimeType:mimeType];
+}
+
+@end
+
+@interface EFNUploadData ()
+
+@property (nonatomic, strong, readwrite, nullable) NSData *fileData;
+@property (nonatomic, strong, readwrite, nullable) NSURL *fileURL;
+
+@end
+
+@implementation EFNUploadData
+
+- (instancetype)initWithFileURL:(NSURL *)fileURL
+{
+    NSAssert(fileURL, @"The fileURL must not be null");
+    self = [super init];
+    if (self) {
+        self.fileURL = fileURL;
+    }
+    return self;
+}
+
+- (instancetype)initWithFileData:(NSData *)fileData
+{
+    NSAssert(fileData, @"The fileData must not be null");
+    self = [super init];
+    if (self) {
+        self.fileData = fileData;
+    }
+    return self;
+}
+
+@end
+
+@interface EFNMutipartFormData ()
+
+@property (nonatomic, copy, readwrite, nullable) NSString *name;
+@property (nonatomic, copy, readwrite, nullable) NSString *fileName;
+@property (nonatomic, copy, readwrite, nullable) NSString *mimeType;
+
+@end
+
+@implementation EFNMutipartFormData
+
++ (instancetype)formDataWithFileData:(NSData *)fileData name:(NSString *)name {
+    return [self formDataWithFileData:fileData name:name fileName:nil mimeType:nil];
+}
+
++ (instancetype)formDataWithFileData:(NSData *)fileData name:(NSString *)name fileName:(NSString *)fileName {
+    return [self formDataWithFileData:fileData name:name fileName:fileName mimeType:nil];
+}
+
++ (instancetype)formDataWithFileData:(NSData *)fileData name:(NSString *)name fileName:(NSString *)fileName mimeType:(NSString *)mimeType {
+    NSParameterAssert(fileData);
+    NSParameterAssert(name);
+    return [[self alloc] initWithFileData:fileData name:name fileName:fileName mimeType:mimeType];
+}
+
++ (instancetype)formDataWithFileURL:(NSURL *)fileURL name:(NSString *)name {
+    return [self formDataWithFileURL:fileURL name:name fileName:nil mimeType:nil];
+}
+
+/// @bug 1.0.1及之前版本存在BUG：内部方法调用错误，导致递归死循环
++ (instancetype)formDataWithFileURL:(NSURL *)fileURL name:(NSString *)name fileName:(NSString *)fileName {
+    return [self formDataWithFileURL:fileURL name:name fileName:fileName mimeType:nil];
+}
+
++ (instancetype)formDataWithFileURL:(NSURL *)fileURL name:(NSString *)name fileName:(NSString *)fileName mimeType:(NSString *)mimeType {
+    NSParameterAssert(fileURL);
+    NSParameterAssert(name);
+    return [[self alloc] initWithFileURL:fileURL name:name fileName:fileName mimeType:mimeType];
+}
+
+#pragma mark - Init Method
+- (instancetype)initWithFileURL:(NSURL *)fileURL name:(NSString *)name  fileName:(NSString *)fileName mimeType:(NSString *)mimeType
+{
+    self = [super initWithFileURL:fileURL];
+    if (self) {
+        self.name = name;
+        self.fileName = fileName;
+        self.mimeType = mimeType;
+    }
+    return self;
+}
+
+- (instancetype)initWithFileData:(NSData *)fileData name:(NSString *)name  fileName:(NSString *)fileName mimeType:(NSString *)mimeType
+{
+    self = [super initWithFileData:fileData];
+    if (self) {
+        self.name = name;
+        self.fileName = fileName;
+        self.mimeType = mimeType;
+    }
+    return self;
 }
 
 @end

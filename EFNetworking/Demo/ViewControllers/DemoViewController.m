@@ -56,9 +56,9 @@
         request.cacheTimeout = 60*60*60;
         
     } success:^(EFNResponse * _Nullable response) {
-        NSLog(@"%@", response);
+        EFNLog(@"%@", response);
     } failure:^(EFNResponse * _Nullable response) {
-        NSLog(@"%@", response);
+        EFNLog(@"%@", response);
     }];
 }
 
@@ -80,7 +80,7 @@
     req.key2 = @"value2";
     req.keyn = @"valuen";
     
-    NSLog(@"req:%@", req);
+    EFNLog(@"req:%@", req);
     
     [EFNetHelper.shareHelper request:req
                             reformer:^id<EFNResponseDataReformer> _Nullable{
@@ -88,13 +88,13 @@
                                 return resModel;
                             }
                             progress:^(NSProgress * _Nullable progress) {
-                                NSLog(@"progress:%@",progress.localizedDescription);
+                                EFNLog(@"progress:%@",progress.localizedDescription);
                             }
                             response:^(DemoResponseModel * reformData, EFNResponse * _Nonnull response) {
                                 if (reformData.isSuccess) {
-                                    NSLog(@"请求成功，reformData:%@", reformData);
+                                    EFNLog(@"请求成功，reformData:%@", reformData);
                                 }else{
-                                    NSLog(@"请求失败，error：%@", response.error.localizedDescription);
+                                    EFNLog(@"请求失败，error：%@", response.error.localizedDescription);
                                 }
                             }];
 }
@@ -108,22 +108,22 @@
         request.parameters = @{@"path":@"EFNetWorking/demo"};
         request.requestType = EFNRequestTypeFormDataUpload;
        
-        UIImage *image = [UIImage imageNamed:@"image1.png"];
-        NSData *pdfData = UIImagePNGRepresentation(image);
-        
-        [request addFormDataWithName:@"image1" fileData:pdfData];
+        UIImage *image = [UIImage imageNamed:@"EFNetworking-title"];
+        NSData *data = UIImagePNGRepresentation(image);
+
+        [request appendUploadDataWithFileData:data name:@"EFNetworking-title.png"];
         
 //        NSURL *fileURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"image2.png" ofType:nil]];
 //        [request addFormDataWithName:@"image2" fileURL:fileURL];
     }
                             progress:^(NSProgress * _Nullable progress) {
-                                NSLog(@"progress:%@",progress.localizedDescription);
+                                EFNLog(@"progress:%@",progress.localizedDescription);
                             }
                              success:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }
                              failure:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }];
 }
 
@@ -152,13 +152,13 @@
                             progress:^(NSProgress * _Nullable progress) {
                                 // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
                                 float unitCount = progress.completedUnitCount/progress.totalUnitCount;
-                                NSLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
+                                EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
                             }
                              success:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }
                              failure:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }];
 }
 

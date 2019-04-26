@@ -25,7 +25,7 @@
 
 - (NSString *)description {
     NSDictionary *dict = [self toDictionary];
-    NSString *des = [NSString stringWithFormat:@"%p\n%@", self, dict];
+    NSString *des = [NSString stringWithFormat:@"<%@: %p> => %@", [self class], self, dict];
     return des.copy;
 }
 

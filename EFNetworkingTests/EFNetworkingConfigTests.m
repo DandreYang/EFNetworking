@@ -65,20 +65,20 @@
 {
     EFNetHelper *shareHelper = EFNetHelper.shareHelper;
     EFNetHelper *newHelper = EFNetHelper.helper;
-    NSLog(@"\n=========================\n");
-    NSLog(@"shareNetHelper:%p",shareHelper);
-    NSLog(@"newNetHelper:%p",newHelper);
-    NSLog(@"shareNetHelper.config:%p",shareHelper.config);
-    NSLog(@"newNetHelper.config:%p",newHelper.config);
-    NSLog(@"\n=========================\n");
+    EFNLog(@"\n=========================\n");
+    EFNLog(@"shareNetHelper:%p",shareHelper);
+    EFNLog(@"newNetHelper:%p",newHelper);
+    EFNLog(@"shareNetHelper.config:%p",shareHelper.config);
+    EFNLog(@"newNetHelper.config:%p",newHelper.config);
+    EFNLog(@"\n=========================\n");
 }
 
 
 - (void)testURLComponents {
     NSURLComponents *urlComponents = [[NSURLComponents alloc] initWithString:@"api/getuserInfo?user=1000&code=200"];
     
-    NSLog(@"urlComponents.path:%@", urlComponents.path);
-    NSLog(@"urlComponents.query:%@", urlComponents.query);
+    EFNLog(@"urlComponents.path:%@", urlComponents.path);
+    EFNLog(@"urlComponents.query:%@", urlComponents.query);
 
 }
 

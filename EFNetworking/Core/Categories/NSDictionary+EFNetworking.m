@@ -39,7 +39,7 @@
     if (object == nil) {
         return @{};
     }
-    
+
     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
     
     // 获取类名/根据类名获取类对象
@@ -58,19 +58,13 @@
         NSString *propertyName = [[NSString alloc] initWithCString:property_getName(property)
                                                           encoding:NSUTF8StringEncoding];
         // 取得属性值
-        id propertyValue = nil;
-        id valueObject = [object valueForKey:propertyName];
-        
-        if ([valueObject isKindOfClass:[NSDictionary class]]) {
-            propertyValue = [NSDictionary dictionaryWithDictionary:valueObject];
-        } else if ([valueObject isKindOfClass:[NSArray class]]) {
-            propertyValue = [NSArray arrayWithArray:valueObject];
-        } else {
-            propertyValue = [NSString stringWithFormat:@"%@", [object valueForKey:propertyName]];
-        }
+        id propertyValue = [object valueForKey:propertyName]?:[NSNull null];
         
         [dict setObject:propertyValue forKey:propertyName];
     }
+    
+    free(properties);
+    
     return [dict copy];
 }
 

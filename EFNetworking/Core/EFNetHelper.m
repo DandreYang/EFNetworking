@@ -90,7 +90,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
 - (EFNCacheHelper *)cacheHelper
 {
     if (!_cacheHelper) {
-        _cacheHelper = [[EFNCacheHelper alloc] init];
+        _cacheHelper = [EFNCacheHelper shared];
     }
     
     return _cacheHelper;
@@ -110,9 +110,24 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
  
  @param configHandler 配置回调
  */
-+ (void)generalConfigHandler:(void (^_Nonnull) (id <EFNGeneralConfigDelegate> _Nonnull config))configHandler
++ (void)generalConfigHandler:(NS_NOESCAPE void (^_Nonnull) (id <EFNGeneralConfigDelegate> _Nonnull config))configHandler
 {
     configHandler([EFNDefaultConfig shareConfig]);
+    
+    NSString *logStr = @"\n\n\
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////\n\
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////\n\
+    ///////////                         /////////                         /////////         ///////////////       ///////////\n\
+    ///////////       ///////////////////////////       ///////////////////////////              //////////       ///////////\n\
+    ///////////       ///////////////////////////       ///////////////////////////       ///       ///////       ///////////\n\
+    ///////////                         /////////                         /////////       //////       ////       ///////////\n\
+    ///////////       ///////////////////////////       ///////////////////////////       /////////       /       ///////////\n\
+    ///////////       ///////////////////////////       ///////////////////////////       /////////////           ///////////\n\
+    ///////////                         /////////       ///////////////////////////       ///////////////         ///////////\n\
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////\n\
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////\n\n";
+    
+    EFNLog(@"%@%@", logStr, [EFNDefaultConfig shareConfig]);
 }
 
 - (NSNumber *)request:(id <EFNRequestModelReformer> )requestModel
@@ -120,6 +135,31 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
              progress:(void (^) (NSProgress * _Nullable progress))progressBlock
              response:(void (^) (id reformData, EFNResponse *response))responseBlock
 {
+    // 统一回调处理
+    void (^completeHanlder)(EFNResponse * _Nonnull response, BOOL isSuccess) = ^(EFNResponse * _Nonnull response, BOOL isSuccess) {
+        Lock();
+        if ([self.requestPool containsObject:response.requestID]) {
+            [self.requestPool removeObject:response.requestID];
+        }
+        Unlock();
+        id reformerData = nil;
+        if (reformerConfig) {
+            id<EFNResponseDataReformer> reformer = reformerConfig();
+            
+            if (reformer == nil) {
+                reformerData = [(NSDictionary *)response.dataObject copy];
+            }else{
+                reformer = [reformer reformData:(NSDictionary *)response.dataObject];
+                reformer.isSuccess = isSuccess;
+                
+                reformerData = reformer;
+            }
+        }else{
+            reformerData = [(NSDictionary *)response.dataObject copy];
+        }
+        EFN_SAFE_BLOCK(responseBlock,reformerData, response);
+    };
+    
     // 请求服务
     NSNumber *requestID = [self request:^(EFNRequest * _Nonnull request) {
 
@@ -143,59 +183,17 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
         request.parameters = dict.copy;
     }
                                          progress:progressBlock
-                                          success:^(EFNResponse * _Nullable response) {
-                                              Lock();
-                                              if ([self.requestPool containsObject:response.requestID]) {
-                                                  [self.requestPool removeObject:response.requestID];
-                                              }
-                                              Unlock();
-                                              id reformerData = nil;
-                                              if (reformerConfig) {
-                                                  id<EFNResponseDataReformer> reformer = reformerConfig();
-                                                  
-                                                  if (reformer == nil) {
-                                                      reformerData = [(NSDictionary *)response.dataObject copy];
-                                                  }else{
-                                                      reformer = [reformer reformData:(NSDictionary *)response.dataObject];
-                                                      reformer.isSuccess = YES;
-                                                      
-                                                      reformerData = reformer;
-                                                  }
-                                              }else{
-                                                  reformerData = [(NSDictionary *)response.dataObject copy];
-                                              }
-                                              
-                                              !responseBlock?:responseBlock(reformerData, response);
+                                          success:^(EFNResponse * _Nonnull response) {
+                                              completeHanlder(response, YES);
                                           }
-                                          failure:^(EFNResponse * _Nullable response) {
-                                              Lock();
-                                              if ([self.requestPool containsObject:response.requestID]) {
-                                                  [self.requestPool removeObject:response.requestID];
-                                              }
-                                              Unlock();
-                                              id reformerData = nil;
-                                              if (reformerConfig) {
-                                                  id<EFNResponseDataReformer> reformer = reformerConfig();
-                                                  
-                                                  if (reformer == nil) {
-                                                      reformerData = [(NSDictionary *)response.dataObject copy];
-                                                  }else{
-                                                      reformer = [reformer reformData:(NSDictionary *)response.dataObject];
-                                                      reformer.isSuccess = NO;
-                                                      
-                                                      reformerData = reformer;
-                                                  }
-                                              }else{
-                                                  reformerData = [(NSDictionary *)response.dataObject copy];
-                                              }
-                                              
-                                              !responseBlock?:responseBlock(reformerData, response);
+                                          failure:^(EFNResponse * _Nonnull response) {
+                                              completeHanlder(response, NO);
                                           }];
     
     return requestID;
 }
 
-- (NSNumber *_Nullable)request:(EFNConfigRequestBlock _Nonnull)configRequestBlock
+- (NSNumber *_Nullable)request:(NS_NOESCAPE EFNConfigRequestBlock _Nonnull)configRequestBlock
                        success:(EFNCallBlock _Nullable )successBlock
                        failure:(EFNCallBlock _Nullable )failureBlock
 {
@@ -205,7 +203,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
                  failure:failureBlock];
 }
 
-- (NSNumber *_Nullable)request:(EFNConfigRequestBlock _Nonnull)configRequestBlock
+- (NSNumber *_Nullable)request:(NS_NOESCAPE EFNConfigRequestBlock _Nonnull)configRequestBlock
                       progress:(EFNProgressBlock _Nullable)progressBlock
                        success:(EFNCallBlock _Nullable )successBlock
                        failure:(EFNCallBlock _Nullable )failureBlock
@@ -215,7 +213,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
                             EFN_SAFE_BLOCK(configRequestBlock, request);
                             efnRequest = request;
                         }
-                          uploadProgress:^(NSProgress * _Nullable progress) {
+                          uploadProgress:^(NSProgress * _Nonnull progress) {
                               dispatch_efn_async_main_safe(^{
                                   if (efnRequest.requestType == EFNRequestTypeStreamUpload ||
                                       efnRequest.requestType == EFNRequestTypeFormDataUpload ) {
@@ -223,18 +221,18 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
                                   }
                               });
                           }
-                        downloadProgress:^(NSProgress * _Nullable progress) {
+                        downloadProgress:^(NSProgress * _Nonnull progress) {
                             dispatch_efn_async_main_safe(^{
                                 if (efnRequest.requestType == EFNRequestTypeDownload) {
                                     EFN_SAFE_BLOCK(progressBlock, progress);
                                 }
                             });
                         }
-                                success:^(EFNResponse * _Nullable response) {
+                                success:^(EFNResponse * _Nonnull response) {
                                     dispatch_efn_async_main_safe(^{
                                         EFN_SAFE_BLOCK(successBlock, response);
                                     });
-                                } failure:^(EFNResponse * _Nullable response) {
+                                } failure:^(EFNResponse * _Nonnull response) {
                                     dispatch_efn_async_main_safe(^{
                                         EFN_SAFE_BLOCK(failureBlock, response);
                                     });
@@ -243,7 +241,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
     return requestID;
 }
 
-- (NSNumber *)request:(EFNConfigRequestBlock)configRequestBlock
+- (NSNumber *)request:(NS_NOESCAPE EFNConfigRequestBlock)configRequestBlock
        uploadProgress:(EFNProgressBlock _Nullable)uploadProgressBlock
      downloadProgress:(EFNProgressBlock _Nullable)downloadProgressBlock
               success:(EFNCallBlock _Nullable )successBlock
@@ -255,45 +253,43 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
     [self appendGeneraConfigForRequest:request];
     [self appendSignServiceForRequest:request];
     
+    EFNLog(@"requestConfig:%@", request);
+    
     if (request.enableCache && [self.cacheHelper containsObjectForRequest:request]) {
         EFNResponse *response = [self.cacheHelper responseForRequest:request];
         EFN_SAFE_BLOCK(successBlock, response);
-        
+
         return nil;
     }
     
-    __weak typeof(self) _self = self;
+    // 统一回调处理
+    void (^completeHandler)(EFNResponse * _Nonnull response, BOOL isSuccess) = ^(EFNResponse *_Nonnull response, BOOL isSuccess) {
+        Lock();
+        if ([self.requestPool containsObject:response.requestID]) {
+            [self.requestPool removeObject:response.requestID];
+        }
+        Unlock();
+        
+        if (isSuccess) {
+            // 缓存数据,并且只缓存无错误的数据
+            if (request.enableCache && response.isCache == NO && response.error == nil) {
+                [self.cacheHelper saveResponse:response forRequest:request];
+            }
+            
+            EFN_SAFE_BLOCK(successBlock, response);
+        } else {
+            
+            EFN_SAFE_BLOCK(failureBlock, response);
+        }
+    };
     
     NSNumber *requestID = [self.netProxy request:request
                                   uploadProgress:uploadProgressBlock
                                 downloadProgress:downloadProgressBlock
-                                         success:^(EFNResponse * _Nullable response) {
-                                             __strong typeof(_self) self = _self;
-                                             
-                                             if (self) {
-                                                 Lock();
-                                                 if ([self.requestPool containsObject:response.requestID]) {
-                                                     [self.requestPool removeObject:response.requestID];
-                                                 }
-                                                 Unlock();
-                                                 
-                                                 // 缓存数据,并且只缓存无错误的数据
-                                                 if (request.enableCache && response.isCache == NO && response.error == nil) {
-                                                     [self.cacheHelper saveResponse:response forRequest:request];
-                                                 }
-                                             }
-                                             
-                                             EFN_SAFE_BLOCK(successBlock, response);
-                                         } failure:^(EFNResponse * _Nullable response) {
-                                             __strong typeof(_self) self = _self;
-                                             if (self) {
-                                                 Lock();
-                                                 if ([self.requestPool containsObject:response.requestID]) {
-                                                     [self.requestPool removeObject:response.requestID];
-                                                 }
-                                                 Unlock();
-                                             }
-                                             EFN_SAFE_BLOCK(failureBlock, response);
+                                         success:^(EFNResponse * _Nonnull response) {
+                                             completeHandler(response, YES);
+                                         } failure:^(EFNResponse * _Nonnull response) {
+                                             completeHandler(response, NO);
                                          }];
     if (requestID) {
         Lock();
@@ -306,12 +302,13 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
 
 - (void)appendGeneraConfigForRequest:(EFNRequest *)request
 {
+    NSParameterAssert(request);
     if (!request.downloadSavePath || request.downloadSavePath.length == 0) {
         if (self.config && self.config.generalDownloadSavePath.length) {
             request.downloadSavePath = self.config.generalDownloadSavePath;
         }else{
             NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-            NSString *documentsDirectory = [paths objectAtIndex:0];
+            NSString *documentsDirectory = paths.firstObject;
             
             NSString *path = [NSString stringWithFormat:@"%@/EFNetworking/Download",documentsDirectory];
             request.downloadSavePath = path;
@@ -502,20 +499,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
 
 + (NSString *)getHTTPMethodWithRequest:(EFNRequest *_Nonnull)request
 {
-    NSString *httpMethod = nil;
-    static dispatch_once_t onceToken;
-    static NSArray *httpMethodArray = nil;
-    dispatch_once(&onceToken, ^{
-        httpMethodArray = @[@"POST", @"GET", @"HEAD", @"DELETE", @"PUT", @"PATCH"];
-    });
-    
-    if (request.HTTPMethod >= 0 && request.HTTPMethod < httpMethodArray.count) {
-        httpMethod = httpMethodArray[request.HTTPMethod];
-    }
-    
-    NSAssert(httpMethod.length > 0, @"The HTTP method not found.");
-    
-    return httpMethod;
+    return request.HTTPMethod;
 }
 
 + (NSString *)getApiMethodWithRequest:(EFNRequest *_Nonnull)request
@@ -547,6 +531,20 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
 
 @implementation EFNDefaultConfig
 
+@synthesize generalDownloadSavePath;
+
+@synthesize generalHeaders;
+
+@synthesize generalParameters;
+
+@synthesize generalRequestSerializerType;
+
+@synthesize generalResponseSerializerType;
+
+@synthesize generalServer;
+
+@synthesize signService;
+
 static EFNDefaultConfig *config = nil;
 + (instancetype)shareConfig
 {
@@ -568,18 +566,56 @@ static EFNDefaultConfig *config = nil;
     return self;
 }
 
-@synthesize generalDownloadSavePath;
+- (NSString *)description
+{
+    NSString *des = [NSString stringWithFormat:@"EFNetworking General Config <%p>: \n signService: %@\n generalServer: %@\n generalParameters: %@\n generalHeaders: %@\n generalDownloadSavePath: %@\n generalRequestSerializerType: %@\n generalResponseSerializerType: %@",
+                     self,
+                     self.signService,
+                     self.generalServer,
+                     self.generalParameters,
+                     self.generalHeaders,
+                     self.generalDownloadSavePath,
+                     [self getRequestSerializerType:self.generalRequestSerializerType],
+                     [self getResponseSerializerType:self.generalResponseSerializerType]];
+    
+   return des;
+}
 
-@synthesize generalHeaders;
+#pragma mark - Private Methods
+- (NSString *)getRequestSerializerType:(EFNRequestSerializerType)type {
+    switch (type) {
+        case EFNRequestSerializerTypeJSON:
+            return @"EFNRequestSerializerTypeJSON";
+            break;
+        case EFNRequestSerializerTypePlist:
+            return @"EFNRequestSerializerTypePlist";
+            break;
+        default:
+            return @"EFNRequestSerializerTypeHTTP";
+            break;
+    }
+}
 
-@synthesize generalParameters;
-
-@synthesize generalRequestSerializerType;
-
-@synthesize generalResponseSerializerType;
-
-@synthesize generalServer;
-
-@synthesize signService;
+- (NSString *)getResponseSerializerType:(EFNResponseSerializerType)type {
+    switch (type) {
+        case EFNResponseSerializerTypeXML:
+            return @"EFNResponseSerializerTypeXML";
+            break;
+        case EFNResponseSerializerTypePlist:
+            return @"EFNResponseSerializerTypePlist";
+            break;
+        case EFNResponseSerializerTypeJSON:
+            return @"EFNResponseSerializerTypeJSON";
+            break;
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+        case EFNResponseSerializerTypeXMLDocument:
+            return @"EFNResponseSerializerTypeXMLDocument";
+            break;
+#endif
+        default:
+            return @"EFNResponseSerializerTypeHTTP";
+            break;
+    }
+}
 
 @end

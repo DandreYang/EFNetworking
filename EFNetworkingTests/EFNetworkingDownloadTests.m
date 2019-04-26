@@ -59,13 +59,13 @@
                             progress:^(NSProgress * _Nullable progress) {
                                 // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
                                 float unitCount = progress.completedUnitCount/progress.totalUnitCount;
-                                NSLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
+                                EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
                             }
                              success:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }
                              failure:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }];
 }
 

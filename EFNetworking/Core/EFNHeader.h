@@ -9,9 +9,6 @@
 #ifndef EFNHeader_h
 #define EFNHeader_h
 
-#import "EFNRequest.h"
-#import "EFNResponse.h"
-
 #define EFN_SAFE_BLOCK(blockName, ...) ({ !blockName ? nil : blockName(__VA_ARGS__); })
 
 #define dispatch_efn_sync_main_safe(block)\
@@ -28,6 +25,30 @@
         dispatch_async(dispatch_get_main_queue(), block);\
     }
 
+#define EFNDeprecated(instead) NS_DEPRECATED(2_0, 2_0, 2_0, 2_0, instead)
+
+#if DEBUG
+#define EFNLog(...) @autoreleasepool {\
+NSString * _efnlog_pre_ = @"\n============ EFNetworking Debug Log ============\n\n";\
+NSString * _efnlog_end_ = @"\n\n================================================\n";\
+NSString * _efnlog_content_ = [[NSString alloc] initWithFormat:__VA_ARGS__];\
+NSLog(@"%@%s [line:%d]:%@%@",_efnlog_pre_, __FUNCTION__, __LINE__, _efnlog_content_, _efnlog_end_);}
+#else
+#define EFNLog(...) {}
+#endif
+
+@class EFNRequest, EFNResponse, EFNUploadData;
+@protocol EFNSignService, EFNGeneralConfigDelegate;
+
+#pragma mark - Defined Block
+
+/**
+ 全局配置Block
+
+ @param config 全局配置代理
+ */
+typedef void (^EFNGeneralConfigBlock) (id <EFNGeneralConfigDelegate> _Nonnull config);
+
 /**
  请求配置Block
 
@@ -40,32 +61,89 @@ typedef void (^EFNConfigRequestBlock)(EFNRequest * _Nonnull request);
 
  @param progress 进度
  */
-typedef void (^EFNProgressBlock)(NSProgress * _Nullable progress);
+typedef void (^EFNProgressBlock)(NSProgress * _Nonnull progress);
 
 /**
  响应回调Block
 
  @param response 响应对象
  */
-typedef void (^EFNCallBlock)(EFNResponse * _Nullable response);
+typedef void (^EFNCallBlock)(EFNResponse * _Nonnull response);
 
+#pragma mark - Defined Enum
 
 /**
  网络状态
-
- - EFNReachableStatusUnknown: 未知
- - EFNReachableStatusNotReachable: 无网络
- - EFNReachableStatusReachableViaWWAN: 蜂窝网络
- - EFNReachableStatusReachableViaWiFi: WiFi
  */
 typedef NS_ENUM(NSInteger, EFNReachableStatus) {
-    EFNReachableStatusUnknown          = -1,
-    EFNReachableStatusNotReachable     = 0,
-    EFNReachableStatusReachableViaWWAN = 1,
-    EFNReachableStatusReachableViaWiFi = 2,
+    EFNReachableStatusUnknown          = -1,    //!< 未知
+    EFNReachableStatusNotReachable     = 0,     //!< 无网络
+    EFNReachableStatusReachableViaWWAN = 1,     //!< 蜂窝移动网络
+    EFNReachableStatusReachableViaWiFi = 2,     //!< WiFi
 };
 
-#pragma mark - 协议方法
+/**
+ 请求类型 常规/上传/下载
+ */
+typedef NS_ENUM(NSInteger, EFNRequestType) {
+    /// 常规请求，如 GET/POST/PUT/DELETE等
+    EFNRequestTypeGeneral               = 0,
+    /// FormData上传
+    EFNRequestTypeFormDataUpload        = 1,
+    /// 文件流上传
+    EFNRequestTypeStreamUpload          = 2,
+    /// 下载
+    EFNRequestTypeDownload              = 3
+};
+
+/**
+ HTTP请求方式
+ */
+typedef NSString * EFNHTTPMethod NS_STRING_ENUM;
+/// POST
+FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodPOST;
+/// GET
+FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodGET;
+/// HEAD
+FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodHEAD;
+/// DELETE
+FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodDELETE;
+/// PUT
+FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodPUT;
+/// PATCH
+FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodPATCH;
+
+/**
+ 请求体序列化类型
+ */
+typedef NS_ENUM(NSInteger, EFNRequestSerializerType) {
+    /// HTTP：默认类型
+    EFNRequestSerializerTypeHTTP    = 1,
+    /// JSON：默认会将请求头中的`Content-Type`设置为`application/json`,并且将请求体编码成JSON格式
+    EFNRequestSerializerTypeJSON    = 2,
+    /// Plist：默认会将请求头中的`Content-Type`设置为`application/x-plist`,并且将请求体编码成PropertyList格式
+    EFNRequestSerializerTypePlist   = 3
+};
+
+/**
+ 响应体序列化类型
+ */
+typedef NS_ENUM(NSInteger, EFNResponseSerializerType) {
+    /// HTTP：默认类型
+    EFNResponseSerializerTypeHTTP           = 1,
+    /// JSON：支持接收的 MIME 类型: `application/json` 、 `text/json` 或 `text/javascript`
+    EFNResponseSerializerTypeJSON           = 2,
+    /// XML：支持接收的 MIME 类型: `application/xml` 或 `text/xml`
+    EFNResponseSerializerTypeXML            = 3,
+    /// Plist：支持接收的 MIME 类型: `application/x-plist`
+    EFNResponseSerializerTypePlist          = 4,
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+    /// XMLDocument(MacOS支持)：支持接收的 MIME 类型: `application/xml` 或 `text/xml`
+    EFNResponseSerializerTypeXMLDocument    = 5
+#endif
+};
+
+#pragma mark - Defined Protocol
 
 /**
  网络请求管理配置类
@@ -131,7 +209,7 @@ typedef NS_ENUM(NSInteger, EFNReachableStatus) {
 /**
  请求方法 读取枚举值
  */
-@property (nonatomic, assign) EFNHTTPMethod HTTPMethod;
+@property (nonatomic, nonnull) EFNHTTPMethod HTTPMethod;
 /**
  请求类型 默认常规
  */
@@ -149,7 +227,7 @@ typedef NS_ENUM(NSInteger, EFNReachableStatus) {
 /**
  上传的formdata数据
  */
-@property (nonatomic, strong) NSArray <EFNUploadFormData *>* _Nullable formDatas;
+@property (nonatomic, strong) NSArray <__kindof EFNUploadData *>* _Nullable formDatas;
 /**
  签名服务，为nil时自动取全局通用配置
  */

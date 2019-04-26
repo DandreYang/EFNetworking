@@ -15,6 +15,9 @@
  */
 @interface EFNCacheHelper : NSObject
 
+- (instancetype _Nonnull)init NS_UNAVAILABLE;
++ (instancetype _Nonnull)new NS_UNAVAILABLE;
+
 /**
  网络缓存单例
 

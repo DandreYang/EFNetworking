@@ -59,13 +59,13 @@
         [request addFormDataWithName:@"zip1" fileData:[NSData data]];
     }
                               progress:^(NSProgress * _Nullable progress) {
-                                  NSLog(@"progress:%@", progress);
+                                  EFNLog(@"progress:%@", progress);
                               }
                                success:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"responseObject:%@",response.dataObject);
+                                   EFNLog(@"responseObject:%@",response.dataObject);
                                }
                                failure:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"error:%@", response.message);
+                                   EFNLog(@"error:%@", response.message);
                                }];
 }
 
@@ -84,13 +84,13 @@
                             fileData:UIImagePNGRepresentation(image)];
     }
                             progress:^(NSProgress * _Nullable progress) {
-                                NSLog(@"progress:%@",progress.localizedDescription);
+                                EFNLog(@"progress:%@",progress.localizedDescription);
                             }
                              success:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }
                              failure:^(EFNResponse * _Nullable response) {
-                                 NSLog(@"response:%@",response.description);
+                                 EFNLog(@"response:%@",response.description);
                              }];
 }
 

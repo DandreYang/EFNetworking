@@ -51,11 +51,6 @@
     return self;
 }
 
-- (instancetype)initWithName:(NSString *)name
-{
-    return [self init];
-}
-
 - (void)saveResponse:(EFNResponse *)response forRequest:(EFNRequest * _Nonnull)request
 {
     if (!response) {

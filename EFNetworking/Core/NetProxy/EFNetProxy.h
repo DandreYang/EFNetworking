@@ -7,7 +7,8 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "EFNHeader.h"
+#import "EFNRequest.h"
+#import "EFNResponse.h"
 
 /**
  * 网络请求处理类（代理网关）

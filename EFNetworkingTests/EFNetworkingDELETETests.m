@@ -47,13 +47,13 @@
         request.parameters = @{@"id": @(100)};
     }
                               progress:^(NSProgress * _Nullable progress) {
-                                  NSLog(@"progress:%@", progress);
+                                  EFNLog(@"progress:%@", progress);
                               }
                                success:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"responseObject:%@",response.dataObject);
+                                   EFNLog(@"responseObject:%@",response.dataObject);
                                }
                                failure:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"error:%@", response.message);
+                                   EFNLog(@"error:%@", response.message);
                                }];
 }
 

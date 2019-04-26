@@ -24,7 +24,7 @@
 - (NSDictionary<NSString *,NSString *> *)signForRequest:(EFNRequest *)request
 {
     /// 获取HTTPMethod
-    //NSString *httpMethod = [EFNetHelper getHTTPMethodWithRequest:request];
+    //NSString *httpMethod = request.HTTPMethod;
     /// 获取APIMethod
     //NSString *apiMethod = [EFNetHelper getApiMethodWithRequest:request];
     

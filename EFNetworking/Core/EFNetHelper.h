@@ -24,16 +24,22 @@
 @property (nonatomic, strong, readonly, nonnull) EFNetProxy * netProxy;
 
 /**
- 网络缓存管理器
+ 网络缓存管理器 默认缓存储存在 Library/Cache/EFNetworking/目录下
  */
 @property (nonatomic, strong, readonly, nullable) EFNCacheHelper * cacheHelper;
 
 /**
- 全局配置代理, 默认会自动创建一个EFNDefaultConfig对象并赋值给config
+ 全局配置代理, 默认的config是EFNDefaultConfig的单例
  */
-@property (nonatomic, strong, nonnull) id <EFNGeneralConfigDelegate> config;
+@property (nonatomic, retain, nonnull) id <EFNGeneralConfigDelegate> config;
 
+/**
+ 是否正在请求数据
+ */
 @property (nonatomic, assign, readonly) BOOL isLoading;
+
+- (instancetype _Nonnull )init NS_UNAVAILABLE;
++ (instancetype _Nonnull )new NS_UNAVAILABLE;
 
 /**
  网络请求助手单例
@@ -54,7 +60,7 @@
 
  @param configHandler 配置回调
  */
-+ (void)generalConfigHandler:(void (^_Nonnull) (id <EFNGeneralConfigDelegate> _Nonnull config))configHandler;
++ (void)generalConfigHandler:(NS_NOESCAPE EFNGeneralConfigBlock _Nonnull )configHandler;
 
 /**
  使用数据请求对象发起请求，请求对象需要遵循协议<EFNRequestModelReformer>
@@ -80,7 +86,7 @@
  @param failureBlock 请求失败回调
  @return 请求任务ID
  */
-- (NSNumber *_Nullable)request:(EFNConfigRequestBlock _Nonnull)configRequestBlock
+- (NSNumber *_Nullable)request:(NS_NOESCAPE EFNConfigRequestBlock _Nonnull)configRequestBlock
                        success:(EFNCallBlock _Nullable )successBlock
                        failure:(EFNCallBlock _Nullable )failureBlock;
 
@@ -93,7 +99,7 @@
  @param failureBlock 请求失败回调
  @return 请求任务ID
  */
-- (NSNumber *_Nullable)request:(EFNConfigRequestBlock _Nonnull)configRequestBlock
+- (NSNumber *_Nullable)request:(NS_NOESCAPE EFNConfigRequestBlock _Nonnull)configRequestBlock
                       progress:(EFNProgressBlock _Nullable)progressBlock
                        success:(EFNCallBlock _Nullable )successBlock
                        failure:(EFNCallBlock _Nullable )failureBlock;
@@ -188,7 +194,7 @@
  @param request request
  @return HTTPMethod
  */
-+ (NSString *_Nonnull)getHTTPMethodWithRequest:(EFNRequest *_Nonnull)request;
++ (NSString *_Nonnull)getHTTPMethodWithRequest:(EFNRequest *_Nonnull)request EFNDeprecated("请直接使用request.HTTPMethod");
 
 /**
  根据Request获取ApiMethod
@@ -196,7 +202,7 @@
  @param request request
  @return ApiMethod
  */
-+ (NSString *_Nullable)getApiMethodWithRequest:(EFNRequest *_Nonnull)request;
++ (NSString *_Nullable)getApiMethodWithRequest:(EFNRequest *_Nonnull)request EFNDeprecated("未来版本可能会移除该方法");
 
 @end
 

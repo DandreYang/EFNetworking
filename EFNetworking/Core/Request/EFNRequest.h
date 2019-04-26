@@ -7,70 +7,12 @@
 //
 
 #import <Foundation/Foundation.h>
-
-#if DEBUG
-#define EFNLog(format, ...) NSLog(format, ##__VA_ARGS__)
-#else
-#define EFNLog(format, ...) {}
-#endif
+#import "EFNHeader.h"
 
 @protocol EFNSignService;
-/**
- 请求类型 常规/上传/下载
- */
-typedef NS_ENUM(NSInteger, EFNRequestType) {
-    EFNRequestTypeGeneral               = 0,    // 常规请求，如 GET/POST/PUT/DELETE等
-    EFNRequestTypeFormDataUpload        = 1,    // FormData上传
-    EFNRequestTypeStreamUpload          = 2,    // 文件流上传
-    EFNRequestTypeDownload              = 3,     // 下载
-    EFNRequestTypeDefault               = EFNRequestTypeGeneral
-};
 
-/**
- HTTP请求方式
- */
-typedef NS_ENUM(NSInteger, EFNHTTPMethod) {
-    EFNHTTPMethodPOST   = 0,    // POST
-    EFNHTTPMethodGET    = 1,    // GET
-    EFNHTTPMethodHEAD   = 2,    // HEAD
-    EFNHTTPMethodDELETE = 3,    // DELETE
-    EFNHTTPMethodPUT    = 4,    // PUT
-    EFNHTTPMethodPATCH  = 5,    // PATCH
-};
 
-/**
- 请求体序列化类型
- 
- - EFNRequestSerializerTypeHTTP: HTTP：默认类型
- - EFNRequestSerializerTypeJSON: JSON：默认会将请求头中的`Content-Type`设置为`application/json`,并且将请求体编码成JSON格式
- - EFNRequestSerializerTypePlist: Plist：默认会将请求头中的`Content-Type`设置为`application/x-plist`,并且将请求体编码成PropertyList格式
- */
-typedef NS_ENUM(NSInteger, EFNRequestSerializerType) {
-    EFNRequestSerializerTypeHTTP    = 1,
-    EFNRequestSerializerTypeJSON    = 2,
-    EFNRequestSerializerTypePlist   = 3
-};
-
-/**
- 响应体序列化类型
- 
- - EFNResponseSerializerTypeHTTP: HTTP：默认类型
- - EFNResponseSerializerTypeJSON: JSON：支持接收的 MIME 类型: `application/json` 、 `text/json` 或 `text/javascript`
- - EFNResponseSerializerTypeXML: XML：支持接收的 MIME 类型: `application/xml` 或 `text/xml`
- - EFNResponseSerializerTypePlist: Plist：支持接收的 MIME 类型: `application/x-plist`
- - EFNResponseSerializerTypeXMLDocument: XMLDocument(MacOS支持)：支持接收的 MIME 类型: `application/xml` 或 `text/xml`
- */
-typedef NS_ENUM(NSInteger, EFNResponseSerializerType) {
-    EFNResponseSerializerTypeHTTP           = 1,
-    EFNResponseSerializerTypeJSON           = 2,
-    EFNResponseSerializerTypeXML            = 3,
-    EFNResponseSerializerTypePlist          = 4,
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-    EFNResponseSerializerTypeXMLDocument    = 5
-#endif
-};
-
-@class EFNUploadFormData;
+@class EFNUploadData;
 
 /**
  请求的基类
@@ -136,7 +78,7 @@ typedef NS_ENUM(NSInteger, EFNResponseSerializerType) {
 /**
  请求方法
  */
-@property (nonatomic, assign) EFNHTTPMethod HTTPMethod;
+@property (nonatomic, nonnull) EFNHTTPMethod HTTPMethod;
 
 /**
  配置 RequestSerializerType, 默认为 EFNRequestSerializerTypeHTTP（参考EFNDefaultConfig的默认值）
@@ -156,7 +98,7 @@ typedef NS_ENUM(NSInteger, EFNResponseSerializerType) {
 /**
  上传的FormData数据，只用于requestType = EFNRequestTypeFormDataUpload 时
  */
-@property (nonatomic, strong, nullable) NSArray<EFNUploadFormData *> *uploadFormDatas;
+@property (nonatomic, strong, nullable) NSArray<__kindof EFNUploadData *> *uploadFormDatas;
 
 /**
  文件保存路径，可以是文件夹或文件名，默认取generalDownloadSavePath  只用于requestType = EFNRequestTypeFormDataDownload 时
@@ -178,35 +120,103 @@ typedef NS_ENUM(NSInteger, EFNResponseSerializerType) {
  */
 @property (nonatomic, assign) NSTimeInterval cacheTimeout;
 
-#pragma mark - Add FormData Methods
-- (void)addFormDataWithName:(NSString *_Nullable)name fileData:(NSData *_Nonnull)fileData;
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileData:(NSData *_Nonnull)fileData;
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileData:(NSData *_Nonnull)fileData;
+#ifdef EFNREQUEST_PROTECTED_ACCESS
+@property (nonatomic, strong, readonly) NSMutableArray<__kindof EFNUploadData *> * _Nonnull uploadDataArray;
+@property (nonatomic, strong, readonly) NSLock * _Nonnull lock;
+#endif
 
-- (void)addFormDataWithName:(NSString *_Nullable)name fileURL:(NSURL *_Nonnull)fileURL;
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileURL:(NSURL *_Nonnull)fileURL;
-- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileURL:(NSURL *_Nonnull)fileURL;
+@end
+
+@interface EFNRequest (AppendUploadData)
+
+#pragma mark - Append Upload Part Methods
+- (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData;
+- (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name;
+- (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
+
+- (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL;
+- (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name;
+- (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
+
+@end
+
+@interface EFNRequest (Deprecated)
+
+#pragma mark - Deprecated Methods
+- (void)addFormDataWithName:(NSString *_Nullable)name fileData:(NSData *_Nonnull)fileData
+EFNDeprecated("请替换为`-appendUploadDataWithFileData:name:`");
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileData:(NSData *_Nonnull)fileData
+EFNDeprecated("请替换为`-appendUploadDataWithFileData:name:fileName:mimeType`");
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileData:(NSData *_Nonnull)fileData
+EFNDeprecated("请替换为`-appendUploadDataWithFileData:name:fileName:mimeType`");
+- (void)addFormDataWithName:(NSString *_Nullable)name fileURL:(NSURL *_Nonnull)fileURL
+EFNDeprecated("请替换为`-appendUploadDataWithFileURL:name:`");
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileURL:(NSURL *_Nonnull)fileURL
+EFNDeprecated("请替换为`-appendUploadDataWithFileURL:name:fileName:mimeType`");
+- (void)addFormDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileURL:(NSURL *_Nonnull)fileURL
+EFNDeprecated("请替换为`-appendUploadDataWithFileURL:name:fileName:mimeType`");
+
+@end
+
+
+/**
+ 文件上传UploadData类，适用于非FormData上传的方式
+ */
+@interface EFNUploadData : NSObject
+
+/// 需要上传的FormData数据
+@property (nonatomic, strong, readonly, nullable) NSData *fileData;
+
+/// 需要上传的文件地址
+@property (nonatomic, strong, readonly, nullable) NSURL *fileURL;
+
+- (instancetype _Nonnull )init NS_UNAVAILABLE;
+- (instancetype _Nonnull )new NS_UNAVAILABLE;
+
+/**
+ 实例化方法
+
+ @param fileURL 文件URL
+ @return 实例对象
+ */
+- (instancetype _Nonnull )initWithFileURL:(NSURL *_Nonnull)fileURL NS_DESIGNATED_INITIALIZER;
+
+/**
+ 实例化方法
+
+ @param fileData 文件数据
+ @return 实例对象
+ */
+- (instancetype _Nonnull )initWithFileData:(NSData *_Nonnull)fileData NS_DESIGNATED_INITIALIZER;
 
 @end
 
 /**
- 文件上传FormData类
+ 文件上传FormData类，适用于使用FormData上传的场景
+ 
+ 1.0.1版本之前是 EFNUploadFormData, 1.0.1之后的版本重写的此类
  */
-@interface EFNUploadFormData : NSObject
+@interface EFNMutipartFormData : EFNUploadData
 
-@property (nonatomic, copy, nullable) NSString *name;           /**< 与formData数据关联的名称（key），一般不能为空。例如：image */
-@property (nonatomic, copy, nullable) NSString *fileName;       /**< 提交给服务器端的文件名，用于服务器端保存文件 */
-@property (nonatomic, copy, nullable) NSString *mimeType;       /**< 文件的MIME类型，（例如，一个JPEG图片的MIME类型为image/jpeg）*/
-@property (nonatomic, strong, nullable) NSData *fileData;       /**< 需要上传的FormData数据 */
-@property (nonatomic, strong, nullable) NSURL *fileURL;         /**< 需要上传的文件地址 */
+/// 与formData数据关联的名称（key），一般不能为空。例如：image
+@property (nonatomic, copy, readonly, nullable) NSString *name;
+
+/// 提交给服务器端的文件名，用于服务器端保存文件
+@property (nonatomic, copy, readonly, nullable) NSString *fileName;
+
+/// 文件的MIME类型，（例如，一个JPEG图片的MIME类型为image/jpeg）
+@property (nonatomic, copy, readonly, nullable) NSString *mimeType;
 
 #pragma mark - Methods
-+ (instancetype _Nonnull)formDataWithName:(NSString *_Nullable)name fileData:(NSData *_Nonnull)fileData;
-+ (instancetype _Nonnull)formDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileData:(NSData *_Nonnull)fileData;
-+ (instancetype _Nonnull)formDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileData:(NSData *_Nonnull)fileData;
++ (instancetype _Nonnull)formDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name;
++ (instancetype _Nonnull)formDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName;
++ (instancetype _Nonnull)formDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
 
-+ (instancetype _Nonnull)formDataWithName:(NSString *_Nullable)name fileURL:(NSURL *_Nonnull)fileURL;
-+ (instancetype _Nonnull)formDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName fileURL:(NSURL *_Nonnull)fileURL;
-+ (instancetype _Nonnull)formDataWithName:(NSString *_Nullable)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType fileURL:(NSURL *_Nonnull)fileURL;
++ (instancetype _Nonnull)formDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name ;
++ (instancetype _Nonnull)formDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName;
++ (instancetype _Nonnull)formDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
+
+- (instancetype _Nonnull )initWithFileURL:(NSURL *_Nonnull)fileURL NS_UNAVAILABLE;
+- (instancetype _Nonnull )initWithFileData:(NSData *_Nonnull)fileData NS_UNAVAILABLE;
 
 @end

@@ -11,18 +11,13 @@
 
 /**
  响应状态
-
- - EFNResponseStatusSuccess: 响应成功
- - EFNResponseStatusErrorTimeout: 请求超时
- - EFNResponseStatusErrorCancel: 取消请求
- - EFNResponseStatusErrorNoNetwork: 无网络
  */
 typedef NS_ENUM(NSUInteger, EFNResponseStatus)
 {
-    EFNResponseStatusSuccess        = 0,
-    EFNResponseStatusErrorTimeout   = -1,
-    EFNResponseStatusErrorCancel    = -2,
-    EFNResponseStatusErrorNoNetwork = -3
+    EFNResponseStatusSuccess        = 0,    //!< 响应成功
+    EFNResponseStatusErrorTimeout   = -1,   //!< 请求超时
+    EFNResponseStatusErrorCancel    = -2,   //!< 取消请求
+    EFNResponseStatusErrorNoNetwork = -3    //!< 无网络
 };
 
 /**
@@ -30,50 +25,35 @@ typedef NS_ENUM(NSUInteger, EFNResponseStatus)
  */
 @interface EFNResponse : NSObject
 
-/**
- 状态
- */
+/// 状态
 @property (nonatomic, assign, readonly) EFNResponseStatus status;
 
-/**
- 请求的编号
- */
+/// 请求的编号
 @property (nonatomic, copy, readonly) NSNumber *requestID;
 
-/**
- 状态码
- */
+/// 状态码
 @property (nonatomic, assign, readonly) NSInteger statusCode;
 
-/**
- 错误提示
- */
+/// 错误提示
 @property (nonatomic, copy, readonly) NSString *message;
 
-/**
- 响应体数据对象
- */
+/// 响应体数据对象
 @property (nonatomic, strong, readonly) id<NSCoding> dataObject;
 
-/**
- 请求的urlRequest
- */
+/// 请求的urlRequest
 @property (nonatomic, copy, readonly) NSURLRequest *urlRequest;
 
-/**
- 响应数据
- */
+/// 响应数据
 @property (nonatomic, strong, readonly) NSHTTPURLResponse *urlResponse;
 
-/**
- 错误信息
- */
+/// 错误信息
 @property (nonatomic, strong, readonly) NSError *error;
 
-/**
- 是否是缓存
- */
+/// 是否是缓存
 @property (nonatomic, assign, readonly) BOOL isCache;
+
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)new NS_UNAVAILABLE;
 
 /**
  实例方法
@@ -89,7 +69,7 @@ typedef NS_ENUM(NSUInteger, EFNResponseStatus)
                        urlRequest:(NSURLRequest *)urlRequest
                    responseObject:(id)dataObject
                       urlResponse:(NSHTTPURLResponse *)urlResponse
-                            error:(NSError *)error;
+                            error:(NSError *)error NS_DESIGNATED_INITIALIZER;
 
 /**
  通过缓存实例对象
@@ -97,6 +77,6 @@ typedef NS_ENUM(NSUInteger, EFNResponseStatus)
  @param cacheObject 缓存对象
  @return 实例
  */
-- (instancetype)initWithCacheObject:(id<NSCoding>)cacheObject;
+- (instancetype)initWithCacheObject:(id<NSCoding>)cacheObject NS_DESIGNATED_INITIALIZER;
 
 @end

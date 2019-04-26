@@ -7,7 +7,6 @@
 //
 
 #import "EFNetProxy.h"
-
 #ifndef _EFN_USE_AFNETWORKING_
 #define _EFN_USE_AFNETWORKING_ 1
 #endif
@@ -23,7 +22,32 @@
 #define Lock() [self.lock lock]
 #define Unlock() [self.lock unlock]
 
-static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.lock";
+static NSString * const EFNetProxyLockName = @"vip.dandre.EFNetworking.NetProxy.lock";
+
+static NSString *EFNDownloadTempCacheFolder(){
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    static NSString *cacheFolder = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cacheFolder = [NSTemporaryDirectory() stringByAppendingPathComponent:@"EFNetworking"];
+    });
+    NSError *error;
+    if (![fileManager fileExistsAtPath:cacheFolder]) {
+        [fileManager createDirectoryAtPath:cacheFolder withIntermediateDirectories:YES attributes:nil error:&error];
+    }
+    
+    if (error) {
+        EFNLog(@"Failed to create download cache folder at %@, error => %@", cacheFolder, error.localizedDescription);
+        return nil;
+    }
+    
+    return cacheFolder;
+}
+
+static NSURL * EFNDownloadTempPath(NSString * fileName) {
+    NSString *tmpPath = [EFNDownloadTempCacheFolder() stringByAppendingPathComponent:fileName];
+    return [NSURL fileURLWithPath:tmpPath];
+}
 
 @interface EFNetProxy ()
 #if _EFN_USE_AFNETWORKING_
@@ -68,6 +92,9 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 - (void)dealloc
 {
     [self cancelAllRequests];
+    _dispatchPool = nil;
+    _lock = nil;
+    _sessionManager = nil;
 }
 
 - (NSLock *)lock {
@@ -108,8 +135,8 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 
 - (EFNReachableStatus)reachabilityStatus
 {
-#if _EFN_USE_AFNETWORKING_
-    return (NSInteger)[AFNetworkReachabilityManager sharedManager].networkReachabilityStatus;
+#if _EFN_USE_AFNETWORKING_ && !TARGET_OS_WATCH
+    return (EFNReachableStatus)[AFNetworkReachabilityManager sharedManager].networkReachabilityStatus;
 #else
     return EFNReachableStatusNotReachable;
 #endif
@@ -157,17 +184,20 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
     NSParameterAssert(request);
     NSParameterAssert(request.url);
     NSNumber *requestID = nil;
+    
 #if _EFN_USE_AFNETWORKING_
     if (request.requestType == EFNRequestTypeDownload) {
-        return [self download:request
-                     progress:downloadProgressBlock
-                      success:successBlock
-                      failure:failureBlock];
+        requestID = [self download:request
+                          progress:downloadProgressBlock
+                           success:successBlock
+                           failure:failureBlock];
+        return requestID;
     }else if (request.requestType == EFNRequestTypeFormDataUpload || request.requestType == EFNRequestTypeStreamUpload) {
-        return [self upload:request
-                   progress:uploadProgressBlock
-                    success:successBlock
-                    failure:failureBlock];
+        requestID =  [self upload:request
+                         progress:uploadProgressBlock
+                          success:successBlock
+                          failure:failureBlock];
+        return requestID;
     }
     
     NSError *serializationError = nil;
@@ -190,8 +220,12 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
     
     __block NSURLSessionDataTask *dataTask = nil;
     dataTask = [self.sessionManager dataTaskWithRequest:urlRequest
-                                         uploadProgress:nil
-                                       downloadProgress:nil
+                                         uploadProgress:^(NSProgress * _Nonnull uploadProgress) {
+                                             EFN_SAFE_BLOCK(uploadProgressBlock, uploadProgress);
+                                         }
+                                       downloadProgress:^(NSProgress * _Nonnull downloadProgress) {
+                                           EFN_SAFE_BLOCK(downloadProgressBlock, downloadProgress);
+                                       }
                                       completionHandler:^(NSURLResponse * __unused response, id responseObject, NSError *error) {
                                           
                                           NSNumber *requestID = @([dataTask taskIdentifier]);
@@ -234,7 +268,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
     NSParameterAssert(request.url);
     NSParameterAssert(request.downloadSavePath);
     
-    NSURL *downloadFileSavePathURL = nil;
+    __block NSURL *downloadFileSavePathURL = nil;
     BOOL isDirectory;
     if(![[NSFileManager defaultManager] fileExistsAtPath:request.downloadSavePath isDirectory:&isDirectory]) {
         isDirectory = NO;
@@ -318,8 +352,9 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
     
     // 判断该下载任务是否允许断点下载 并且本地是否有已下载的原始数据
     if (request.enableResumeDownload) {
-        if ([[NSFileManager defaultManager] fileExistsAtPath:downloadFileSavePathURL.absoluteString]) {
+        if ([[NSFileManager defaultManager] fileExistsAtPath:downloadFileSavePathURL.path]) {
             resumeData = [NSData dataWithContentsOfURL:downloadFileSavePathURL];
+            [[NSFileManager defaultManager] removeItemAtPath:downloadFileSavePathURL.path error:nil];
         }
     }
     // 判断该下载任务是否可以被重新唤起（断点下载）
@@ -333,6 +368,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
                                                                       EFN_SAFE_BLOCK(progressBlock, downloadProgress);
                                                                   }
                                                                destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
+                                                                   EFNLog(@"targetPath:%@\ndownloadPath:%@", targetPath, downloadFileSavePathURL);
                                                                    return downloadFileSavePathURL;
                                                                }
                                                          completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
@@ -432,9 +468,16 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
                                                       }];
     } else {
         
-        EFNUploadFormData *uploadData = request.uploadFormDatas.firstObject;
+        __block EFNMutipartFormData *uploadData = nil;
+        [request.uploadFormDatas enumerateObjectsUsingBlock:^(__kindof EFNUploadData * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            if ([obj isMemberOfClass:[EFNUploadData class]]) {
+                uploadData = obj;
+                *stop = YES;
+            }
+        }];
         
         if (!uploadData) {
+            EFNLog(@"upload data must not be nil");
             return nil;
         }
         
@@ -650,32 +693,13 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
 #endif
 }
 
-- (NSString *)getHTTPMethodWithRequest:(EFNRequest *)request
-{
-    NSString *httpMethod = nil;
-    static dispatch_once_t onceToken;
-    static NSArray *httpMethodArray = nil;
-    dispatch_once(&onceToken, ^{
-        httpMethodArray = @[@"POST", @"GET", @"HEAD", @"DELETE", @"PUT", @"PATCH"];
-    });
-    
-    if (request.HTTPMethod >= 0 && request.HTTPMethod < httpMethodArray.count) {
-        httpMethod = httpMethodArray[request.HTTPMethod];
-    }
-    
-    NSAssert(httpMethod.length > 0, @"The HTTP method not found.");
-    
-    return httpMethod;
-}
-
 - (NSMutableURLRequest *)urlRequestForEFNRequest:(EFNRequest *)request error:(NSError *__autoreleasing *)error
 {
+    NSParameterAssert(request.HTTPMethod);
+    NSParameterAssert(request.url);
+    
     self.sessionManager.requestSerializer = [self requestSerializerForRequest:request];
     self.sessionManager.responseSerializer = [self responseSerializerForRequest:request];
-    NSString *HTTPMethod = [self getHTTPMethodWithRequest:request];
-    
-    NSParameterAssert(HTTPMethod);
-    NSParameterAssert(request.url);
     
     NSMutableURLRequest *urlRequest = nil;
 #if _EFN_USE_AFNETWORKING_
@@ -686,22 +710,26 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
                                                                                      URLString:request.url
                                                                                     parameters:(NSDictionary *)request.parameters
                                                                      constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
-                                                                         [request.uploadFormDatas enumerateObjectsUsingBlock:^(EFNUploadFormData *obj, NSUInteger idx, BOOL *stop) {
-                                                                             if (obj.fileData) {
-                                                                                 if (obj.fileName && obj.mimeType) {
-                                                                                     [formData appendPartWithFileData:obj.fileData name:obj.name fileName:obj.fileName mimeType:obj.mimeType];
-                                                                                 } else {
-                                                                                     [formData appendPartWithFormData:obj.fileData name:obj.name];
-                                                                                 }
-                                                                             } else if (obj.fileURL) {
-                                                                                 NSError *fileError = nil;
-                                                                                 if (obj.fileName && obj.mimeType) {
-                                                                                     [formData appendPartWithFileURL:obj.fileURL name:obj.name fileName:obj.fileName mimeType:obj.mimeType error:&fileError];
-                                                                                 } else {
-                                                                                     [formData appendPartWithFileURL:obj.fileURL name:obj.name error:&fileError];
-                                                                                 }
-                                                                                 if (fileError) {
-                                                                                     *stop = YES;
+                                                                         [request.uploadFormDatas enumerateObjectsUsingBlock:^(__kindof EFNUploadData * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                                                                             
+                                                                             if ([obj isKindOfClass:[EFNMutipartFormData class]]) {
+                                                                                 EFNMutipartFormData *item = (EFNMutipartFormData *)obj;
+                                                                                 if (item.fileData) {
+                                                                                     if (item.fileName && item.mimeType) {
+                                                                                         [formData appendPartWithFileData:item.fileData name:item.name fileName:item.fileName mimeType:item.mimeType];
+                                                                                     } else {
+                                                                                         [formData appendPartWithFormData:item.fileData name:item.name];
+                                                                                     }
+                                                                                 } else if (item.fileURL) {
+                                                                                     NSError *fileError = nil;
+                                                                                     if (item.fileName && item.mimeType) {
+                                                                                         [formData appendPartWithFileURL:item.fileURL name:item.name fileName:item.fileName mimeType:item.mimeType error:&fileError];
+                                                                                     } else {
+                                                                                         [formData appendPartWithFileURL:item.fileURL name:item.name error:&fileError];
+                                                                                     }
+                                                                                     if (fileError) {
+                                                                                         *stop = YES;
+                                                                                     }
                                                                                  }
                                                                              }
                                                                          }];
@@ -715,7 +743,7 @@ static NSString * const EFNetProxyLockName = @"vip.dandre.efnetworking.netProxy.
                                                                             error:error];
             break;
         default:
-            urlRequest = [self.sessionManager.requestSerializer requestWithMethod:HTTPMethod
+            urlRequest = [self.sessionManager.requestSerializer requestWithMethod:request.HTTPMethod
                                                                         URLString:request.url
                                                                        parameters:request.parameters
                                                                             error:error];

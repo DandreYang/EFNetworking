@@ -69,13 +69,13 @@
         request.HTTPMethod = EFNHTTPMethodPOST;     // Request 默认HTTPMethod为POST，如果为POST，此句代码可不写
     }
                               progress:^(NSProgress * _Nullable progress) {
-                                  NSLog(@"progress:%@", progress);
+                                  EFNLog(@"progress:%@", progress);
                               }
                                success:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"responseObject:%@",response.dataObject);
+                                   EFNLog(@"responseObject:%@",response.dataObject);
                                }
                                failure:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"error:%@", response.message);
+                                   EFNLog(@"error:%@", response.message);
                                }];
 }
 
@@ -87,13 +87,13 @@
         request.HTTPMethod = EFNHTTPMethodPOST;     // Request 默认HTTPMethod为POST，如果为POST，此句代码可不写
     }
                               progress:^(NSProgress * _Nullable progress) {
-                                  NSLog(@"progress:%@", progress);
+                                  EFNLog(@"progress:%@", progress);
                               }
                                success:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"responseObject:%@",response.dataObject);
+                                   EFNLog(@"responseObject:%@",response.dataObject);
                                }
                                failure:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"error:%@", response.message);
+                                   EFNLog(@"error:%@", response.message);
                                }];
 }
 
@@ -109,13 +109,13 @@
         request.responseSerializerType = EFNResponseSerializerTypeJSON;
     }
                               progress:^(NSProgress * _Nullable progress) {
-                                  NSLog(@"progress:%@", progress);
+                                  EFNLog(@"progress:%@", progress);
                               }
                                success:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"responseObject:%@",response.dataObject);
+                                   EFNLog(@"responseObject:%@",response.dataObject);
                                }
                                failure:^(EFNResponse * _Nullable response) {
-                                   NSLog(@"error:%@", response.message);
+                                   EFNLog(@"error:%@", response.message);
                                }];
 }
 
@@ -138,7 +138,7 @@
     req.key2 = @"value2";
     req.keyn = @"valuen";
     
-    NSLog(@"req:%@", req);
+    EFNLog(@"req:%@", req);
     
     [EFNetHelper.shareHelper request:req
                             reformer:^id<EFNResponseDataReformer> _Nullable{
@@ -146,13 +146,13 @@
                                 return resModel;
                             }
                             progress:^(NSProgress * _Nullable progress) {
-                                NSLog(@"progress:%@",progress.localizedDescription);
+                                EFNLog(@"progress:%@",progress.localizedDescription);
                             }
                             response:^(DemoResponseModel * reformData, EFNResponse * _Nonnull response) {
                                 if (reformData.isSuccess) {
-                                    NSLog(@"请求成功，reformData:%@", reformData);
+                                    EFNLog(@"请求成功，reformData:%@", reformData);
                                 }else{
-                                    NSLog(@"请求失败，error：%@", response.error.localizedDescription);
+                                    EFNLog(@"请求失败，error：%@", response.error.localizedDescription);
                                 }
                             }];
 }
