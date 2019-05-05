@@ -186,7 +186,7 @@
 
 @end
 
-@interface EFNetHelper (Sign)
+@interface EFNetHelper (Deprecated)
 
 /**
  根据Request获取HTTPMethod

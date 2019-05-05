@@ -14,9 +14,9 @@
 - (NSString *)efn_toURLQuery
 {
     __block NSMutableString *paramString = [NSMutableString string];
-    
+    __block NSArray * allKeys = self.allKeys;
     [self enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-        NSInteger i = [self.allKeys indexOfObject:key];
+        NSInteger i = [allKeys indexOfObject:key];
         if (i == 0) {
             [paramString appendFormat:@"?%@=%@", key, obj];
         } else {

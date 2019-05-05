@@ -495,7 +495,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
 
 @end
 
-@implementation EFNetHelper (Sign)
+@implementation EFNetHelper (Deprecated)
 
 + (NSString *)getHTTPMethodWithRequest:(EFNRequest *_Nonnull)request
 {

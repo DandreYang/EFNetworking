@@ -143,7 +143,7 @@
         // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
         // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
+        NSString *documentsDirectory = paths.firstObject;
 
         NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/Demo/Download"];
         request.downloadSavePath = path;
