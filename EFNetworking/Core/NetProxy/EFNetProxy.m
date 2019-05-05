@@ -652,7 +652,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     
     if (request.headers.count > 0) {
         [request.headers enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull field, NSString * _Nonnull value, BOOL * _Nonnull stop) {
-            [self.sessionManager.requestSerializer setValue:value forHTTPHeaderField:field];
+            [requestSerializer setValue:value forHTTPHeaderField:field];
         }];
     }
     

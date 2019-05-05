@@ -120,11 +120,6 @@
  */
 @property (nonatomic, assign) NSTimeInterval cacheTimeout;
 
-#ifdef EFNREQUEST_PROTECTED_ACCESS
-@property (nonatomic, strong, readonly) NSMutableArray<__kindof EFNUploadData *> * _Nonnull uploadDataArray;
-@property (nonatomic, strong, readonly) NSLock * _Nonnull lock;
-#endif
-
 @end
 
 @interface EFNRequest (AppendUploadData)

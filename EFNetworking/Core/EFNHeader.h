@@ -72,9 +72,7 @@ typedef void (^EFNCallBlock)(EFNResponse * _Nonnull response);
 
 #pragma mark - Defined Enum
 
-/**
- 网络状态
- */
+/// 网络状态
 typedef NS_ENUM(NSInteger, EFNReachableStatus) {
     EFNReachableStatusUnknown          = -1,    //!< 未知
     EFNReachableStatusNotReachable     = 0,     //!< 无网络
@@ -82,9 +80,7 @@ typedef NS_ENUM(NSInteger, EFNReachableStatus) {
     EFNReachableStatusReachableViaWiFi = 2,     //!< WiFi
 };
 
-/**
- 请求类型 常规/上传/下载
- */
+/// 请求类型 常规/上传/下载
 typedef NS_ENUM(NSInteger, EFNRequestType) {
     /// 常规请求，如 GET/POST/PUT/DELETE等
     EFNRequestTypeGeneral               = 0,
@@ -96,26 +92,22 @@ typedef NS_ENUM(NSInteger, EFNRequestType) {
     EFNRequestTypeDownload              = 3
 };
 
-/**
- HTTP请求方式
- */
+/// HTTP请求方式
 typedef NSString * EFNHTTPMethod NS_STRING_ENUM;
 /// POST
-FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodPOST;
+static EFNHTTPMethod const _Nonnull EFNHTTPMethodPOST       = @"POST";
 /// GET
-FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodGET;
+static EFNHTTPMethod const _Nonnull EFNHTTPMethodGET        = @"GET";
 /// HEAD
-FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodHEAD;
+static EFNHTTPMethod const _Nonnull EFNHTTPMethodHEAD       = @"HEAD";
 /// DELETE
-FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodDELETE;
+static EFNHTTPMethod const _Nonnull EFNHTTPMethodDELETE     = @"DELETE";
 /// PUT
-FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodPUT;
+static EFNHTTPMethod const _Nonnull EFNHTTPMethodPUT        = @"PUT";
 /// PATCH
-FOUNDATION_EXPORT EFNHTTPMethod const _Nonnull EFNHTTPMethodPATCH;
+static EFNHTTPMethod const _Nonnull EFNHTTPMethodPATCH      = @"PATCH";
 
-/**
- 请求体序列化类型
- */
+/// 请求体序列化类型
 typedef NS_ENUM(NSInteger, EFNRequestSerializerType) {
     /// HTTP：默认类型
     EFNRequestSerializerTypeHTTP    = 1,
@@ -125,9 +117,7 @@ typedef NS_ENUM(NSInteger, EFNRequestSerializerType) {
     EFNRequestSerializerTypePlist   = 3
 };
 
-/**
- 响应体序列化类型
- */
+/// 响应体序列化类型
 typedef NS_ENUM(NSInteger, EFNResponseSerializerType) {
     /// HTTP：默认类型
     EFNResponseSerializerTypeHTTP           = 1,

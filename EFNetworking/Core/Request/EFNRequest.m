@@ -6,20 +6,12 @@
 //  Copyright © 2018年 Dandre.Vip All rights reserved.
 //
 
-#define EFNREQUEST_PROTECTED_ACCESS
 #import "EFNRequest.h"
 #import "NSDictionary+EFNetworking.h"
 #include <objc/runtime.h>
 
 #define Lock() [self.lock lock]
 #define Unlock() [self.lock unlock]
-
-EFNHTTPMethod const EFNHTTPMethodPOST       = @"POST";
-EFNHTTPMethod const EFNHTTPMethodGET        = @"GET";
-EFNHTTPMethod const EFNHTTPMethodHEAD       = @"HEAD";
-EFNHTTPMethod const EFNHTTPMethodDELETE     = @"DELETE";
-EFNHTTPMethod const EFNHTTPMethodPUT        = @"PUT";
-EFNHTTPMethod const EFNHTTPMethodPATCH      = @"PATCH";
 
 static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.lock";
 
