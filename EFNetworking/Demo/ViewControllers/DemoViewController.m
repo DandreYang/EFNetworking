@@ -14,6 +14,12 @@
 
 @interface DemoViewController ()
 
+@property (weak, nonatomic) IBOutlet UIProgressView *uploadProgressView;
+@property (weak, nonatomic) IBOutlet UIProgressView *downloadProgressView;
+
+@property (nonatomic, strong) NSNumber *uploadRequestID;
+@property (nonatomic, strong) NSNumber *downloadRequestID;
+
 @end
 
 @implementation DemoViewController
@@ -21,7 +27,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
-    
 }
 
 - (void)didReceiveMemoryWarning {
@@ -103,63 +108,83 @@
  上传文件示例
  */
 - (IBAction)uploadBtnClicked:(id)sender {
-    [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
-        request.api = @"file/upload";
-        request.parameters = @{@"path":@"EFNetWorking/demo"};
-        request.requestType = EFNRequestTypeFormDataUpload;
-       
-        UIImage *image = [UIImage imageNamed:@"EFNetworking-title"];
-        NSData *data = UIImagePNGRepresentation(image);
-
-        [request appendUploadDataWithFileData:data name:@"EFNetworking-title.png"];
+    self.uploadRequestID = [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
+                                request.api = @"file/upload";
+                                request.parameters = @{@"path":@"EFNetWorking/demo"};
+                                request.requestType = EFNRequestTypeFormDataUpload;
         
-//        NSURL *fileURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"image2.png" ofType:nil]];
-//        [request addFormDataWithName:@"image2" fileURL:fileURL];
-    }
-                            progress:^(NSProgress * _Nullable progress) {
-                                EFNLog(@"progress:%@",progress.localizedDescription);
+                                UIImage *image = [UIImage imageNamed:@"EFNetworking-title"];
+                                NSData *data = UIImagePNGRepresentation(image);
+
+                                [request appendUploadDataWithFileData:data name:@"EFNetworking-title.png"];
                             }
-                             success:^(EFNResponse * _Nullable response) {
-                                 EFNLog(@"response:%@",response.description);
-                             }
-                             failure:^(EFNResponse * _Nullable response) {
-                                 EFNLog(@"response:%@",response.description);
-                             }];
+                                                    progress:^(NSProgress * _Nullable progress) {
+                                                        float unitCount = 100.0f * progress.completedUnitCount/progress.totalUnitCount;
+                                                        EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.2f%%",unitCount]);
+                                                        self.uploadProgressView.progress = unitCount / 100;
+                                                    }
+                                                     success:^(EFNResponse * _Nullable response) {
+                                                         EFNLog(@"response:%@",response.description);
+                                                     }
+                                                     failure:^(EFNResponse * _Nullable response) {
+                                                         EFNLog(@"response:%@",response.description);
+                                                     }];
+}
+
+- (IBAction)suspendUploadBtnClicked:(id)sender {
+    [EFNetHelper.shareHelper suspendWithRequestID:self.uploadRequestID];
+}
+
+- (IBAction)resumeUploadBtnClicked:(id)sender {
+    [EFNetHelper.shareHelper resumeWithRequestID:self.uploadRequestID];
 }
 
 /**
  下载文件示例
  */
 - (IBAction)downloadBtnClicked:(id)sender {
-    [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
-        // 这里如果直接设置了url,url的格式必须是带http://或https://的url全路径，如：http://www.abc.com
-        // 直接设置url后，server和api将失效，也就是url的优先级是高于 server+api方式的
-        request.url = @"https://github.com/DandreYang/EFNetworking/archive/master.zip";
-        
-        // 默认的requestType = EFNRequestTypeGeneral，如果是下载和上传请求，这里需要做下设置，否则可能会报错
-        request.requestType = EFNRequestTypeDownload;
-        
-        // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径，可以是文件夹或文件路径
-        // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
-        // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *documentsDirectory = paths.firstObject;
+    self.downloadProgressView.progress = 0;
+    self.downloadRequestID = [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
+                                // 这里如果直接设置了url,url的格式必须是带http://或https://的url全路径，如：http://www.abc.com
+                                // 直接设置url后，server和api将失效，也就是url的优先级是高于 server+api方式的
+                                request.url = @"https://github.com/DandreYang/EFNetworking/archive/master.zip";
+//                                request.url = @"https://github.com/CocoaPods/Specs/archive/master.zip";
+       
+                                // 默认的requestType = EFNRequestTypeGeneral，如果是下载和上传请求，这里需要做下设置，否则可能会报错
+                                request.requestType = EFNRequestTypeDownload;
+       
+                                // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径，可以是文件夹或文件路径
+                                // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
+                                // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
+                                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+                                NSString *documentsDirectory = paths.firstObject;
 
-        NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/Demo/Download"];
-        request.downloadSavePath = path;
-        request.enableResumeDownload = YES;
-    }
-                            progress:^(NSProgress * _Nullable progress) {
-                                // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
-                                float unitCount = progress.completedUnitCount/progress.totalUnitCount;
-                                EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
+                                NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/Demo/Download"];
+                                request.downloadSavePath = path;
+                                request.enableResumeDownload = YES;
+                                request.parameters = @{};
                             }
-                             success:^(EFNResponse * _Nullable response) {
-                                 EFNLog(@"response:%@",response.description);
-                             }
-                             failure:^(EFNResponse * _Nullable response) {
-                                 EFNLog(@"response:%@",response.description);
-                             }];
+                                                    progress:^(NSProgress * _Nullable progress) {
+                                                        // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
+                                                        float unitCount = 100.0f * progress.completedUnitCount/progress.totalUnitCount;
+                                                        EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.2f%%",unitCount]);
+                                                        self.downloadProgressView.progress = unitCount / 100;
+                                                    }
+                                                     success:^(EFNResponse * _Nullable response) {
+                                                         self.downloadRequestID = nil;
+                                                         EFNLog(@"response:%@",response.description);
+                                                     }
+                                                     failure:^(EFNResponse * _Nullable response) {
+                                                         self.downloadRequestID = nil;
+                                                         EFNLog(@"response:%@",response.description);
+                                                     }];
+}
+
+- (IBAction)suspendDownloadBtnClicked:(id)sender {
+    [EFNetHelper.shareHelper cancelWithRequestID:self.downloadRequestID];
+}
+- (IBAction)resumeDownloadBtnClicked:(id)sender {
+    [EFNetHelper.shareHelper resumeWithRequestID:self.downloadRequestID];
 }
 
 @end

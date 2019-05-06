@@ -125,12 +125,18 @@
 @interface EFNRequest (AppendUploadData)
 
 #pragma mark - Append Upload Part Methods
+/// 适用于 EFNRequestTypeStreamUpload 上传方式
 - (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData;
+/// 适用于 EFNRequestTypeFormDataUpload 上传方式
 - (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name;
+/// 适用于 EFNRequestTypeFormDataUpload 上传方式
 - (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
 
+/// 适用于 EFNRequestTypeStreamUpload 上传方式
 - (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL;
+/// 适用于 EFNRequestTypeFormDataUpload 上传方式
 - (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name;
+/// 适用于 EFNRequestTypeFormDataUpload 上传方式
 - (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
 
 @end
@@ -214,4 +220,7 @@ EFNDeprecated("请替换为`-appendUploadDataWithFileURL:name:fileName:mimeType`
 - (instancetype _Nonnull )initWithFileURL:(NSURL *_Nonnull)fileURL NS_UNAVAILABLE;
 - (instancetype _Nonnull )initWithFileData:(NSData *_Nonnull)fileData NS_UNAVAILABLE;
 
+@end
+
+@interface EFNStreamUploadData : EFNUploadData
 @end

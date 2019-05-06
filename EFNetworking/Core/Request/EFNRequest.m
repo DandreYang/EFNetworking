@@ -82,7 +82,7 @@ static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.l
 - (BOOL)appendUploadDataWithFileData:(NSData *_Nonnull)fileData
 {
     Lock();
-    [self.uploadDataArray addObject:[[EFNUploadData alloc] initWithFileData:fileData]];
+    [self.uploadDataArray addObject:[[EFNStreamUploadData alloc] initWithFileData:fileData]];
     Unlock();
     return YES;
 }
@@ -106,7 +106,7 @@ static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.l
 - (BOOL)appendUploadDataWithFileURL:(NSURL *_Nonnull)fileURL
 {
     Lock();
-    [self.uploadDataArray addObject:[[EFNUploadData alloc] initWithFileURL:fileURL]];
+    [self.uploadDataArray addObject:[[EFNStreamUploadData alloc] initWithFileURL:fileURL]];
     Unlock();
     return YES;
 }

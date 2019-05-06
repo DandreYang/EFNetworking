@@ -7,6 +7,9 @@
 //
 
 #import "EFNetProxy.h"
+#import "NSString+EFNetworking.h"
+#import "NSArray+EFNetworking.h"
+#import "NSDictionary+EFNetworking.h"
 #ifndef _EFN_USE_AFNETWORKING_
 #define _EFN_USE_AFNETWORKING_ 1
 #endif
@@ -29,7 +32,7 @@ static NSString *EFNDownloadTempCacheFolder(){
     static NSString *cacheFolder = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        cacheFolder = [NSTemporaryDirectory() stringByAppendingPathComponent:@"EFNetworking"];
+        cacheFolder = [NSTemporaryDirectory() stringByAppendingPathComponent:@"EFNetworking.ResumeData"];
     });
     NSError *error;
     if (![fileManager fileExistsAtPath:cacheFolder]) {
@@ -95,6 +98,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     _dispatchPool = nil;
     _lock = nil;
     _sessionManager = nil;
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (NSLock *)lock {
@@ -273,8 +277,8 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     if(![[NSFileManager defaultManager] fileExistsAtPath:request.downloadSavePath isDirectory:&isDirectory]) {
         isDirectory = NO;
     }
-    
-    NSString *fileName = [request.url.lastPathComponent componentsSeparatedByString:@"?"].firstObject;
+    NSURL *url = [NSURL URLWithString:request.url];
+    NSString *fileName = [NSString stringWithFormat:@"%@.%@", [self fileNameForRequest:request], url.pathExtension];
     
     if (isDirectory) {
         downloadFileSavePathURL = [NSURL fileURLWithPath:[NSString pathWithComponents:@[request.downloadSavePath, fileName]] isDirectory:NO];
@@ -282,14 +286,14 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         downloadFileSavePathURL = [NSURL fileURLWithPath:request.downloadSavePath isDirectory:NO];
         
         if (![[NSFileManager defaultManager] fileExistsAtPath:request.downloadSavePath]) {
-            
+
             BOOL isFile = [request.downloadSavePath.lastPathComponent containsString:@"."];
-            
+
             NSString *path = request.downloadSavePath;
             if (isFile) {
                 path = [request.downloadSavePath stringByDeletingLastPathComponent];
             }
-            
+
             BOOL createSuccess = [[NSFileManager defaultManager]  createDirectoryAtPath:path
                                                            withIntermediateDirectories:YES
                                                                             attributes:nil
@@ -298,7 +302,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
                 EFNLog(@"EFNetProxy:创建下载路径失败");
                 return @(0);
             }
-            
+
             if (!isFile) {
                 downloadFileSavePathURL = [NSURL fileURLWithPath:[NSString pathWithComponents:@[request.downloadSavePath, fileName]] isDirectory:NO];
             }
@@ -352,9 +356,9 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     
     // 判断该下载任务是否允许断点下载 并且本地是否有已下载的原始数据
     if (request.enableResumeDownload) {
-        if ([[NSFileManager defaultManager] fileExistsAtPath:downloadFileSavePathURL.path]) {
-            resumeData = [NSData dataWithContentsOfURL:downloadFileSavePathURL];
-            [[NSFileManager defaultManager] removeItemAtPath:downloadFileSavePathURL.path error:nil];
+        NSURL *resumeDataPathURL = EFNDownloadTempPath([self fileNameForRequest:request]);
+        if ([[NSFileManager defaultManager] fileExistsAtPath:resumeDataPathURL.path]) {
+            resumeData = [NSData dataWithContentsOfURL:resumeDataPathURL];
         }
     }
     // 判断该下载任务是否可以被重新唤起（断点下载）
@@ -402,6 +406,11 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         [downloadTask resume];
     }
 #endif
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(dealDownloadNotification:)
+                                                 name:AFNetworkingTaskDidCompleteNotification
+                                               object:downloadTask];
     
     return requestID;
 }
@@ -470,7 +479,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         
         __block EFNMutipartFormData *uploadData = nil;
         [request.uploadFormDatas enumerateObjectsUsingBlock:^(__kindof EFNUploadData * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            if ([obj isMemberOfClass:[EFNUploadData class]]) {
+            if ([obj isMemberOfClass:[EFNStreamUploadData class]]) {
                 uploadData = obj;
                 *stop = YES;
             }
@@ -530,7 +539,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         return;
     }
     Lock();
-    NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
+    NSURLSessionTask *requestTask = self.dispatchPool[requestID];
     [requestTask resume];
     Unlock();
 }
@@ -539,12 +548,13 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
 - (void)resumeWithRequestIDList:(NSArray <NSNumber *> *_Nonnull)requestIDList
 {
     if (!requestIDList || requestIDList.count == 0) {
+        EFNLog(@"requestIDList is nil or requestIDList is empty");
         return;
     }
     
     for (NSNumber *requestID in requestIDList) {
         Lock();
-        NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
+        NSURLSessionTask *requestTask = self.dispatchPool[requestID];
         [requestTask resume];
         Unlock();
     }
@@ -567,7 +577,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         return;
     }
     Lock();
-    NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
+    NSURLSessionTask *requestTask = self.dispatchPool[requestID];
     [requestTask suspend];
     Unlock();
 }
@@ -576,12 +586,13 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
 - (void)suspendWithRequestIDList:(NSArray <NSNumber *> *_Nonnull)requestIDList
 {
     if (!requestIDList || requestIDList.count == 0) {
+        EFNLog(@"requestIDList is nil or requestIDList is empty");
         return;
     }
     
     for (NSNumber *requestID in requestIDList) {
         Lock();
-        NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
+        NSURLSessionTask *requestTask = self.dispatchPool[requestID];
         [requestTask suspend];
         Unlock();
     }
@@ -605,7 +616,14 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         return;
     }
     Lock();
-    [self.dispatchPool[requestID] cancel];
+    NSURLSessionTask *task = self.dispatchPool[requestID];
+    if ([task isKindOfClass:[NSURLSessionDownloadTask class]]) {
+        [(NSURLSessionDownloadTask *)task cancelByProducingResumeData:^(NSData * _Nullable resumeData) {
+        }];
+    }else{
+        [task cancel];
+    }
+    
     [self.dispatchPool removeObjectForKey:requestID];
     Unlock();
 }
@@ -614,14 +632,20 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
 - (void)cancelWithRequestIDList:(NSArray <NSNumber *> *)requestIDList
 {
     if (!requestIDList || requestIDList.count == 0) {
+        EFNLog(@"requestIDList is nil or requestIDList is empty");
         return;
     }
     
     for (NSNumber *requestID in requestIDList) {
         Lock();
-        NSURLSessionDataTask *requestTask = self.dispatchPool[requestID];
+        NSURLSessionTask *task = self.dispatchPool[requestID];
+        if ([task isKindOfClass:[NSURLSessionDownloadTask class]]) {
+            [(NSURLSessionDownloadTask *)task cancelByProducingResumeData:^(NSData * _Nullable resumeData) {
+            }];
+        }else{
+            [task cancel];
+        }
         Unlock();
-        [requestTask cancel];
     }
     
     Lock();
@@ -629,7 +653,51 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     Unlock();
 }
 
+#pragma mark - Deal Notification
+- (void)dealDownloadNotification:(NSNotification *)notification
+{
+    if ([notification.object isKindOfClass:[NSURLSessionDownloadTask class]]) {
+        NSURLSessionDownloadTask *task = notification.object;
+        NSError *error  = [notification.userInfo objectForKey:AFNetworkingTaskDidCompleteErrorKey];
+        if (error) {
+            NSData *resumeData = [error.userInfo objectForKey:NSURLSessionDownloadTaskResumeData];
+            [self saveResumeData:resumeData forDownloadTask:task];;
+        }
+    }
+}
+
+- (void)saveResumeData:(NSData *)resumeData forDownloadTask:(NSURLSessionDownloadTask *)task {
+    if (!task)  return;
+    NSString *filename = [task.originalRequest.URL.absoluteString efn_MD5_32_Encode];
+    NSString *resumeFilePath = EFNDownloadTempPath(filename).path;
+    
+    if ([[NSFileManager defaultManager] fileExistsAtPath:resumeFilePath]) {
+        [[NSFileManager defaultManager] removeItemAtPath:resumeFilePath error:NULL];
+    }
+    
+    if (![resumeData writeToFile:resumeFilePath atomically:NO]) EFNLog(@"写入resumeData失败");
+}
+
 #pragma mark - Private Methods
+- (NSString *)fileNameForRequest:(EFNRequest * _Nonnull)request {
+    NSParameterAssert(request);
+    NSParameterAssert(request.url);
+    
+    if (request == nil || request.url.length == 0) {
+        return @"";
+    }
+    
+    NSString *query = @"";
+    if ([request.parameters isKindOfClass:[NSDictionary class]]) {
+        query = [(NSDictionary *)request.parameters efn_toURLQuery];
+    }else if ([request.parameters isKindOfClass:[NSArray class]]) {
+        query = [(NSArray *)request.parameters efn_toJSONString];
+    }
+    
+    NSString *filename = [[request.url stringByAppendingString:query] efn_MD5_32_Encode];
+    
+    return filename;
+}
 
 #pragma mark 获取 requestSerializer
 - (__kindof NSObject *)requestSerializerForRequest:(EFNRequest *)request
@@ -707,33 +775,33 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         case EFNRequestTypeFormDataUpload:
         {
             urlRequest = [self.sessionManager.requestSerializer multipartFormRequestWithMethod:@"POST"
-                                                                                     URLString:request.url
-                                                                                    parameters:(NSDictionary *)request.parameters
-                                                                     constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
-                                                                         [request.uploadFormDatas enumerateObjectsUsingBlock:^(__kindof EFNUploadData * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                                                                             
-                                                                             if ([obj isKindOfClass:[EFNMutipartFormData class]]) {
-                                                                                 EFNMutipartFormData *item = (EFNMutipartFormData *)obj;
-                                                                                 if (item.fileData) {
-                                                                                     if (item.fileName && item.mimeType) {
-                                                                                         [formData appendPartWithFileData:item.fileData name:item.name fileName:item.fileName mimeType:item.mimeType];
-                                                                                     } else {
-                                                                                         [formData appendPartWithFormData:item.fileData name:item.name];
-                                                                                     }
-                                                                                 } else if (item.fileURL) {
-                                                                                     NSError *fileError = nil;
-                                                                                     if (item.fileName && item.mimeType) {
-                                                                                         [formData appendPartWithFileURL:item.fileURL name:item.name fileName:item.fileName mimeType:item.mimeType error:&fileError];
-                                                                                     } else {
-                                                                                         [formData appendPartWithFileURL:item.fileURL name:item.name error:&fileError];
-                                                                                     }
-                                                                                     if (fileError) {
-                                                                                         *stop = YES;
-                                                                                     }
-                                                                                 }
-                                                                             }
-                                                                         }];
-                                                                     } error:error];
+                                 URLString:request.url
+                                parameters:(NSDictionary *)request.parameters
+                 constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
+                     [request.uploadFormDatas enumerateObjectsUsingBlock:^(__kindof EFNUploadData * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                         
+                         if ([obj isKindOfClass:[EFNMutipartFormData class]]) {
+                             EFNMutipartFormData *item = (EFNMutipartFormData *)obj;
+                             if (item.fileData) {
+                                 if (item.fileName && item.mimeType) {
+                                     [formData appendPartWithFileData:item.fileData name:item.name fileName:item.fileName mimeType:item.mimeType];
+                                 } else {
+                                     [formData appendPartWithFormData:item.fileData name:item.name];
+                                 }
+                             } else if (item.fileURL) {
+                                 NSError *fileError = nil;
+                                 if (item.fileName && item.mimeType) {
+                                     [formData appendPartWithFileURL:item.fileURL name:item.name fileName:item.fileName mimeType:item.mimeType error:&fileError];
+                                 } else {
+                                     [formData appendPartWithFileURL:item.fileURL name:item.name error:&fileError];
+                                 }
+                                 if (fileError) {
+                                     *stop = YES;
+                                 }
+                             }
+                         }
+                     }];
+                 } error:error];
         }
             break;
         case EFNRequestTypeDownload:

@@ -37,6 +37,37 @@
     }];
 }
 
+- (void)testStreamUploadRequest
+{
+    [[EFNetHelper shareHelper] request:^(EFNRequest * _Nonnull request) {
+        
+        // 设置上传服务地址
+        request.server = @"http://api.baidu.com";
+        request.api = @"uploadimage";
+        
+        // 上传数据时，request的requestType必须设置为上传类型
+        request.requestType = EFNRequestTypeStreamUpload;
+        
+        // 有时候接口不需要传递其他参数时，此句可以不设置
+        request.parameters = @{@"key1":@"value"};
+        
+        // 添加需要上传的数据， name为文件对应的参数名称
+        [request appendUploadDataWithFileData:[NSData data]];
+        [request appendUploadDataWithFileData:[NSData data]];
+        [request appendUploadDataWithFileData:[NSData data]];
+        [request appendUploadDataWithFileData:[NSData data]];
+    }
+                              progress:^(NSProgress * _Nullable progress) {
+                                  EFNLog(@"progress:%@", progress);
+                              }
+                               success:^(EFNResponse * _Nullable response) {
+                                   EFNLog(@"responseObject:%@",response.dataObject);
+                               }
+                               failure:^(EFNResponse * _Nullable response) {
+                                   EFNLog(@"error:%@", response.message);
+                               }];
+}
+
 - (void)testFormDataUploadRequest
 {
     [[EFNetHelper shareHelper] request:^(EFNRequest * _Nonnull request) {
@@ -45,18 +76,17 @@
         request.server = @"http://api.baidu.com";
         request.api = @"uploadimage";
         
-        // 上传数据时，request的requestType必须设置为上传类型， 当前只支持 FormData方式上传
+        // 上传数据时，request的requestType必须设置为上传类型
         request.requestType = EFNRequestTypeFormDataUpload;
         
         // 有时候接口不需要传递其他参数时，此句可以不设置
         request.parameters = @{@"key1":@"value"};
         
         // 添加需要上传的数据， name为文件对应的参数名称
-        [request addFormDataWithName:@"img1" fileData:[NSData data]];
-        [request addFormDataWithName:@"img2" fileData:[NSData data]];
-        [request addFormDataWithName:@"img3" fileData:[NSData data]];
-        [request addFormDataWithName:@"pdf1" fileData:[NSData data]];
-        [request addFormDataWithName:@"zip1" fileData:[NSData data]];
+        [request appendUploadDataWithFileData:[NSData data] name:@"img1"];
+        [request appendUploadDataWithFileData:[NSData data] name:@"img2"];
+        [request appendUploadDataWithFileData:[NSData data] name:@"pdf1"];
+        [request appendUploadDataWithFileData:[NSData data] name:@"zip1"];
     }
                               progress:^(NSProgress * _Nullable progress) {
                                   EFNLog(@"progress:%@", progress);
@@ -78,10 +108,10 @@
         
         UIImage *image = [UIImage imageNamed:@"efnetworking.png"];
     
-        [request addFormDataWithName:@"file"
-                            fileName:@"servername.png"
-                            mimeType:@"image/png"
-                            fileData:UIImagePNGRepresentation(image)];
+        [request appendUploadDataWithFileData:UIImagePNGRepresentation(image)
+                                         name:@"file"
+                                     fileName:@"serverfilename.png"
+                                     mimeType:@"image/png"];
     }
                             progress:^(NSProgress * _Nullable progress) {
                                 EFNLog(@"progress:%@",progress.localizedDescription);
