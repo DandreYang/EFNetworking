@@ -74,7 +74,7 @@ pod 'EFNetworking'
     
     // 这里设置的下载文件保存路径是对全局有效的，所以建议设置的路径是指定到文件夹而不是文件，否则后下载的文件会将之前下载的文件进行覆盖
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *documentsDirectory = paths.firstObject;
     
     NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/General/Download"];
     config.generalDownloadSavePath = path;
@@ -147,8 +147,8 @@ NSLog(@"req:%@", req);
     request.requestType = EFNRequestTypeFormDataUpload;
    
     UIImage *image = [UIImage imageNamed:@"image1.png"];
-    NSData *pdfData = UIImagePNGRepresentation(image);
-    [request addFormDataWithName:@"image1" fileData:pdfData];
+    NSData *imgData = UIImagePNGRepresentation(image);
+    [request appendUploadDataWithFileData:imgData name:@"img1"];
 }
                         progress:^(NSProgress * _Nullable progress) {
                             NSLog(@"progress:%@",progress.localizedDescription);
