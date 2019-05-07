@@ -766,11 +766,11 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     NSParameterAssert(request.HTTPMethod);
     NSParameterAssert(request.url);
     
+    NSMutableURLRequest *urlRequest = nil;
+#if _EFN_USE_AFNETWORKING_
     self.sessionManager.requestSerializer = [self requestSerializerForRequest:request];
     self.sessionManager.responseSerializer = [self responseSerializerForRequest:request];
     
-    NSMutableURLRequest *urlRequest = nil;
-#if _EFN_USE_AFNETWORKING_
     switch (request.requestType) {
         case EFNRequestTypeFormDataUpload:
         {
