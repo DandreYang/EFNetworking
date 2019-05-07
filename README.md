@@ -74,7 +74,7 @@ pod 'EFNetworking'
     
     // 这里设置的下载文件保存路径是对全局有效的，所以建议设置的路径是指定到文件夹而不是文件，否则后下载的文件会将之前下载的文件进行覆盖
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *documentsDirectory = paths.firstObject;
     
     NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/General/Download"];
     config.generalDownloadSavePath = path;
@@ -147,8 +147,8 @@ NSLog(@"req:%@", req);
     request.requestType = EFNRequestTypeFormDataUpload;
    
     UIImage *image = [UIImage imageNamed:@"image1.png"];
-    NSData *pdfData = UIImagePNGRepresentation(image);
-    [request addFormDataWithName:@"image1" fileData:pdfData];
+    NSData *imgData = UIImagePNGRepresentation(image);
+    [request appendUploadDataWithFileData:imgData name:@"img1"];
 }
                         progress:^(NSProgress * _Nullable progress) {
                             NSLog(@"progress:%@",progress.localizedDescription);
@@ -180,14 +180,14 @@ NSLog(@"req:%@", req);
     // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
     // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *documentsDirectory = paths.firstObject;
 
     NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/Demo/Download"];
     request.downloadSavePath = path;
 }
                         progress:^(NSProgress * _Nullable progress) {
                             // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
-                            float unitCount = progress.completedUnitCount/progress.totalUnitCount;
+                            float unitCount = 1.0 * progress.completedUnitCount/progress.totalUnitCount;
                             NSLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
                         }
                          success:^(EFNResponse * _Nullable response) {
