@@ -11,6 +11,8 @@
 #import "EFNetProxy.h"
 #import "EFNCacheHelper.h"
 
+FOUNDATION_EXPORT NSString * _Nonnull EFNetworkingDefaultDownloadDirectory(void);
+
 /**
  * 网络请求管理类
  *

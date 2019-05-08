@@ -258,3 +258,7 @@ static NSString * const EFNRequestLockName = @"vip.dandre.efnetworking.request.l
 }
 
 @end
+
+@implementation EFNStreamUploadData
+
+@end

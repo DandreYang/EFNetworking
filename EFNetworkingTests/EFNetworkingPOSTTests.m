@@ -68,13 +68,13 @@
         request.url = @"http://baidu.com/helloword";
         request.HTTPMethod = EFNHTTPMethodPOST;     // Request 默认HTTPMethod为POST，如果为POST，此句代码可不写
     }
-                              progress:^(NSProgress * _Nullable progress) {
+                              progress:^(NSProgress * _Nonnull progress) {
                                   EFNLog(@"progress:%@", progress);
                               }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -86,13 +86,13 @@
         request.api = @"helloword";
         request.HTTPMethod = EFNHTTPMethodPOST;     // Request 默认HTTPMethod为POST，如果为POST，此句代码可不写
     }
-                              progress:^(NSProgress * _Nullable progress) {
+                              progress:^(NSProgress * _Nonnull progress) {
                                   EFNLog(@"progress:%@", progress);
                               }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -108,13 +108,13 @@
         request.requestSerializerType = EFNRequestSerializerTypeHTTP;
         request.responseSerializerType = EFNResponseSerializerTypeJSON;
     }
-                              progress:^(NSProgress * _Nullable progress) {
+                              progress:^(NSProgress * _Nonnull progress) {
                                   EFNLog(@"progress:%@", progress);
                               }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -145,7 +145,7 @@
                                 DemoResponseModel *resModel = [[DemoResponseModel alloc] init];
                                 return resModel;
                             }
-                            progress:^(NSProgress * _Nullable progress) {
+                            progress:^(NSProgress * _Nonnull progress) {
                                 EFNLog(@"progress:%@",progress.localizedDescription);
                             }
                             response:^(DemoResponseModel * reformData, EFNResponse * _Nonnull response) {

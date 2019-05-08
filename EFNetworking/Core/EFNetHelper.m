@@ -14,6 +14,13 @@
 #define Unlock() [self.lock unlock]
 static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelper.lock";
 
+NSString * EFNetworkingDefaultDownloadDirectory(void) {
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = paths.firstObject;
+    NSString *path = [documentsDirectory stringByAppendingPathComponent:@"EFNetworking/Download"];
+    return path;
+}
+
 @interface EFNetHelper ()
 
 /** 请求池 存放所有请求的任务ID */
@@ -223,9 +230,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
                           }
                         downloadProgress:^(NSProgress * _Nonnull progress) {
                             dispatch_efn_async_main_safe(^{
-                                if (efnRequest.requestType == EFNRequestTypeDownload) {
-                                    EFN_SAFE_BLOCK(progressBlock, progress);
-                                }
+                                EFN_SAFE_BLOCK(progressBlock, progress);
                             });
                         }
                                 success:^(EFNResponse * _Nonnull response) {
@@ -241,6 +246,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
     return requestID;
 }
 
+#pragma mark - Private Methods
 - (NSNumber *)request:(NS_NOESCAPE EFNConfigRequestBlock)configRequestBlock
        uploadProgress:(EFNProgressBlock _Nullable)uploadProgressBlock
      downloadProgress:(EFNProgressBlock _Nullable)downloadProgressBlock
@@ -307,11 +313,7 @@ static NSString * const EFNetHelperLockName = @"vip.dandre.efnetworking.nethelpe
         if (self.config && self.config.generalDownloadSavePath.length) {
             request.downloadSavePath = self.config.generalDownloadSavePath;
         }else{
-            NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-            NSString *documentsDirectory = paths.firstObject;
-            
-            NSString *path = [NSString stringWithFormat:@"%@/EFNetworking/Download",documentsDirectory];
-            request.downloadSavePath = path;
+            request.downloadSavePath = EFNetworkingDefaultDownloadDirectory();
         }
     }
     

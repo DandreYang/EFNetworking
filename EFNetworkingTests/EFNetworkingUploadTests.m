@@ -57,13 +57,13 @@
         [request appendUploadDataWithFileData:[NSData data]];
         [request appendUploadDataWithFileData:[NSData data]];
     }
-                              progress:^(NSProgress * _Nullable progress) {
+                              progress:^(NSProgress * _Nonnull progress) {
                                   EFNLog(@"progress:%@", progress);
                               }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -88,13 +88,13 @@
         [request appendUploadDataWithFileData:[NSData data] name:@"pdf1"];
         [request appendUploadDataWithFileData:[NSData data] name:@"zip1"];
     }
-                              progress:^(NSProgress * _Nullable progress) {
+                              progress:^(NSProgress * _Nonnull progress) {
                                   EFNLog(@"progress:%@", progress);
                               }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }

@@ -47,7 +47,7 @@
         // 默认的requestType = EFNRequestTypeGeneral，如果是下载和上传请求，这里需要做下设置，否则可能会报错
         request.requestType = EFNRequestTypeDownload;
         
-        // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径，可以是文件夹或文件路径
+        // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径
         // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
         // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -56,15 +56,15 @@
         NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/Demo/Download"];
         request.downloadSavePath = path;
     }
-                            progress:^(NSProgress * _Nullable progress) {
+                            progress:^(NSProgress * _Nonnull progress) {
                                 // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
                                 float unitCount = progress.completedUnitCount/progress.totalUnitCount;
                                 EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
                             }
-                             success:^(EFNResponse * _Nullable response) {
+                             success:^(EFNResponse * _Nonnull response) {
                                  EFNLog(@"response:%@",response.description);
                              }
-                             failure:^(EFNResponse * _Nullable response) {
+                             failure:^(EFNResponse * _Nonnull response) {
                                  EFNLog(@"response:%@",response.description);
                              }];
 }

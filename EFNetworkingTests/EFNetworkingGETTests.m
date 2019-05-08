@@ -47,10 +47,10 @@
         request.url = @"http://api.baidu.com/helloword";
         request.HTTPMethod = EFNHTTPMethodGET;
     }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -62,10 +62,10 @@
         request.api = @"helloword";
         request.HTTPMethod = EFNHTTPMethodGET;
     }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -81,10 +81,10 @@
         // 缓存时间 单位 秒
         request.cacheTimeout = 60 * 5;
     }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -115,13 +115,13 @@
         // 如果单一接口响应的数据类型 不在全局配置设定的范围，在这里可以单独设置
         request.responseSerializerType = EFNResponseSerializerTypeJSON;
     }
-                              progress:^(NSProgress * _Nullable progress) {
+                              progress:^(NSProgress * _Nonnull progress) {
                                   EFNLog(@"progress:%@", progress);
                               }
-                               success:^(EFNResponse * _Nullable response) {
+                               success:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"responseObject:%@",response.dataObject);
                                }
-                               failure:^(EFNResponse * _Nullable response) {
+                               failure:^(EFNResponse * _Nonnull response) {
                                    EFNLog(@"error:%@", response.message);
                                }];
 }
@@ -151,7 +151,7 @@
                                 DemoResponseModel *resModel = [[DemoResponseModel alloc] init];
                                 return resModel;
                             }
-                            progress:^(NSProgress * _Nullable progress) {
+                            progress:^(NSProgress * _Nonnull progress) {
                                 EFNLog(@"progress:%@",progress.localizedDescription);
                             }
                             response:^(DemoResponseModel * reformData, EFNResponse * _Nonnull response) {

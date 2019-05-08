@@ -27,12 +27,22 @@
 
 static NSString * const EFNetProxyLockName = @"vip.dandre.EFNetworking.NetProxy.lock";
 
+static dispatch_queue_t netProxy_processing_queue() {
+    static dispatch_queue_t efnetProxy_processing_queue;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        efnetProxy_processing_queue = dispatch_queue_create("vip.dandre.EFNetworking.NetProxy.Processing", DISPATCH_QUEUE_SERIAL);
+    });
+    
+    return efnetProxy_processing_queue;
+}
+
 static NSString *EFNDownloadTempCacheFolder(){
     NSFileManager *fileManager = [NSFileManager defaultManager];
     static NSString *cacheFolder = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        cacheFolder = [NSTemporaryDirectory() stringByAppendingPathComponent:@"EFNetworking.ResumeData"];
+        cacheFolder = [NSTemporaryDirectory() stringByAppendingPathComponent:@"EFNetworking/ResumeData"];
     });
     NSError *error;
     if (![fileManager fileExistsAtPath:cacheFolder]) {
@@ -116,6 +126,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     if (!_sessionManager) {
         _sessionManager = [AFHTTPSessionManager manager];
         _sessionManager.operationQueue.maxConcurrentOperationCount = 5;
+        _sessionManager.completionQueue = netProxy_processing_queue();
     }
     
     if (_enableHTTPS) {
@@ -224,12 +235,8 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
     
     __block NSURLSessionDataTask *dataTask = nil;
     dataTask = [self.sessionManager dataTaskWithRequest:urlRequest
-                                         uploadProgress:^(NSProgress * _Nonnull uploadProgress) {
-                                             EFN_SAFE_BLOCK(uploadProgressBlock, uploadProgress);
-                                         }
-                                       downloadProgress:^(NSProgress * _Nonnull downloadProgress) {
-                                           EFN_SAFE_BLOCK(downloadProgressBlock, downloadProgress);
-                                       }
+                                         uploadProgress:uploadProgressBlock
+                                       downloadProgress:downloadProgressBlock
                                       completionHandler:^(NSURLResponse * __unused response, id responseObject, NSError *error) {
                                           
                                           NSNumber *requestID = @([dataTask taskIdentifier]);
@@ -299,7 +306,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
                                                                             attributes:nil
                                                                                  error:nil];
             if (!createSuccess) {
-                EFNLog(@"EFNetProxy:创建下载路径失败");
+                EFNLog(@"Failed to create download path.");
                 return @(0);
             }
 
@@ -331,6 +338,18 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
 #if _EFN_USE_AFNETWORKING_
     
     /// 统一处理回调
+    NSURL * _Nonnull (^destinationBlock)(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) = ^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
+        EFNLog(@"targetPath:%@\ndownloadPath:%@", targetPath, downloadFileSavePathURL);
+        // AFNetworking use `moveItemAtURL` to move downloaded file to destination path,
+        // If a file already exist at the path will cause the downloaded file move failed, because moveItemAtURL doesn't overwrite.
+        // So we remove the exist file before `moveItemAtURL`.
+        // https://github.com/AFNetworking/AFNetworking/issues/3775
+        if ([[NSFileManager defaultManager] fileExistsAtPath:downloadFileSavePathURL.path]) {
+            [[NSFileManager defaultManager] removeItemAtURL:downloadFileSavePathURL error:NULL];
+        }
+        return downloadFileSavePathURL;
+    };
+    
     void (^completionBlock)(__kindof NSURLSessionTask *task, id responseObject, NSError *error) = ^(__kindof NSURLSessionTask *task, id responseObject, NSError *error) {
         NSNumber *requestID = @(task.taskIdentifier);
         Lock();
@@ -368,29 +387,24 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
         @try {
             resumeDownloadSuccess = YES;
             downloadTask = [self.sessionManager downloadTaskWithResumeData:resumeData
-                                                                  progress:^(NSProgress * _Nonnull downloadProgress) {
-                                                                      EFN_SAFE_BLOCK(progressBlock, downloadProgress);
-                                                                  }
+                                                                  progress:progressBlock
                                                                destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-                                                                   EFNLog(@"targetPath:%@\ndownloadPath:%@", targetPath, downloadFileSavePathURL);
-                                                                   return downloadFileSavePathURL;
+                                                                   return destinationBlock(targetPath, response);
                                                                }
                                                          completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
                                                              completionBlock(downloadTask, filePath, error);
                                                          }];
         } @catch (NSException *exception) {
             resumeDownloadSuccess = NO;
-            EFNLog(@"断点下载失败，失败原因：%@", exception.reason);
+            EFNLog(@"Resume data download failure, failure reason:%@", exception.reason);
         }
     }
     
     if (!resumeDownloadSuccess) {
         downloadTask = [self.sessionManager downloadTaskWithRequest:urlRequest
-                                                           progress:^(NSProgress * _Nonnull downloadProgress) {
-                                                               EFN_SAFE_BLOCK(progressBlock, downloadProgress);
-                                                           }
+                                                           progress:progressBlock
                                                         destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-                                                            return downloadFileSavePathURL;
+                                                            return destinationBlock(targetPath, response);
                                                         }
                                                   completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
                                                       completionBlock(downloadTask, filePath, error);
@@ -408,7 +422,7 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
 #endif
     
     [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(dealDownloadNotification:)
+                                             selector:@selector(dealTaskDidCompleteNotification:)
                                                  name:AFNetworkingTaskDidCompleteNotification
                                                object:downloadTask];
     
@@ -423,8 +437,8 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
 {
     NSParameterAssert(request);
     NSParameterAssert(request.url);
-    NSAssert(request.requestType == EFNRequestTypeFormDataUpload || request.requestType == EFNRequestTypeStreamUpload, @"不支持的文件上传类型");
-    NSAssert(request.uploadFormDatas.count > 0, @"上传的文件数据不能为空");
+    NSAssert(request.requestType == EFNRequestTypeFormDataUpload || request.requestType == EFNRequestTypeStreamUpload, @"Unsupported file requestType");
+    NSAssert(request.uploadFormDatas.count > 0, @"Uploaded file data cannot be empty");
     /// 统一处理回调
     void (^completionBlock)(__kindof NSURLSessionTask *task, id responseObject, NSError *error) = ^(__kindof NSURLSessionTask *task, id responseObject, NSError *error) {
         NSNumber *requestID = @(task.taskIdentifier);
@@ -654,28 +668,37 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
 }
 
 #pragma mark - Deal Notification
-- (void)dealDownloadNotification:(NSNotification *)notification
-{
+- (void)dealTaskDidCompleteNotification:(NSNotification *)notification {
     if ([notification.object isKindOfClass:[NSURLSessionDownloadTask class]]) {
         NSURLSessionDownloadTask *task = notification.object;
         NSError *error  = [notification.userInfo objectForKey:AFNetworkingTaskDidCompleteErrorKey];
         if (error) {
             NSData *resumeData = [error.userInfo objectForKey:NSURLSessionDownloadTaskResumeData];
             [self saveResumeData:resumeData forDownloadTask:task];;
+        }else{
+            [self resumeFilePathAndRemoveExistsfileForTask:task];
         }
     }
 }
 
-- (void)saveResumeData:(NSData *)resumeData forDownloadTask:(NSURLSessionDownloadTask *)task {
-    if (!task)  return;
+- (NSString *)resumeFilePathAndRemoveExistsfileForTask:(NSURLSessionDownloadTask *)task {
     NSString *filename = [task.originalRequest.URL.absoluteString efn_MD5_32_Encode];
     NSString *resumeFilePath = EFNDownloadTempPath(filename).path;
     
     if ([[NSFileManager defaultManager] fileExistsAtPath:resumeFilePath]) {
         [[NSFileManager defaultManager] removeItemAtPath:resumeFilePath error:NULL];
     }
-    
-    if (![resumeData writeToFile:resumeFilePath atomically:NO]) EFNLog(@"写入resumeData失败");
+    return resumeFilePath;
+}
+
+- (void)saveResumeData:(NSData *)resumeData forDownloadTask:(NSURLSessionDownloadTask *)task {
+    if (!task || !task.originalRequest)  return;
+    NSString * resumeFilePath = [self resumeFilePathAndRemoveExistsfileForTask:task];
+    if ([resumeData writeToFile:resumeFilePath atomically:NO]) {
+        EFNLog(@"Resumedata was successfully written to path => %@", resumeFilePath);
+    } else {
+        EFNLog(@"Failed to save resumedata.");
+    }
 }
 
 #pragma mark - Private Methods

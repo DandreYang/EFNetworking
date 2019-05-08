@@ -38,6 +38,10 @@
     [self modelRequest];
 }
 
+- (void)dealloc {
+    [EFNetHelper.shareHelper cancelAllRequests];
+}
+
 /**
  普通请求示例
  */
@@ -118,15 +122,15 @@
 
                                 [request appendUploadDataWithFileData:data name:@"EFNetworking-title.png"];
                             }
-                                                    progress:^(NSProgress * _Nullable progress) {
+                                                    progress:^(NSProgress * _Nonnull progress) {
                                                         float unitCount = 100.0f * progress.completedUnitCount/progress.totalUnitCount;
                                                         EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.2f%%",unitCount]);
                                                         self.uploadProgressView.progress = unitCount / 100;
                                                     }
-                                                     success:^(EFNResponse * _Nullable response) {
+                                                     success:^(EFNResponse * _Nonnull response) {
                                                          EFNLog(@"response:%@",response.description);
                                                      }
-                                                     failure:^(EFNResponse * _Nullable response) {
+                                                     failure:^(EFNResponse * _Nonnull response) {
                                                          EFNLog(@"response:%@",response.description);
                                                      }];
 }
@@ -144,16 +148,22 @@
  */
 - (IBAction)downloadBtnClicked:(id)sender {
     self.downloadProgressView.progress = 0;
+    
+    if (self.downloadRequestID) {
+        [EFNetHelper.shareHelper cancelAllRequests];
+        self.downloadRequestID = nil;
+    }
+    
     self.downloadRequestID = [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
                                 // 这里如果直接设置了url,url的格式必须是带http://或https://的url全路径，如：http://www.abc.com
                                 // 直接设置url后，server和api将失效，也就是url的优先级是高于 server+api方式的
-                                request.url = @"https://github.com/DandreYang/EFNetworking/archive/master.zip";
-//                                request.url = @"https://github.com/CocoaPods/Specs/archive/master.zip";
+//                                request.url = @"https://github.com/DandreYang/EFNetworking/archive/master.zip";
+                                request.url = @"https://github.com/CocoaPods/Specs/archive/master.zip";
        
                                 // 默认的requestType = EFNRequestTypeGeneral，如果是下载和上传请求，这里需要做下设置，否则可能会报错
                                 request.requestType = EFNRequestTypeDownload;
        
-                                // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径，可以是文件夹或文件路径
+                                // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径
                                 // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
                                 // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
                                 NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -164,25 +174,26 @@
                                 request.enableResumeDownload = YES;
                                 request.parameters = @{};
                             }
-                                                    progress:^(NSProgress * _Nullable progress) {
+                                                    progress:^(NSProgress * _Nonnull progress) {
                                                         // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
                                                         float unitCount = 100.0f * progress.completedUnitCount/progress.totalUnitCount;
                                                         EFNLog(@"%@",[NSString stringWithFormat:@"已下载 %.2f%%",unitCount]);
                                                         self.downloadProgressView.progress = unitCount / 100;
                                                     }
-                                                     success:^(EFNResponse * _Nullable response) {
+                                                     success:^(EFNResponse * _Nonnull response) {
                                                          self.downloadRequestID = nil;
                                                          EFNLog(@"response:%@",response.description);
                                                      }
-                                                     failure:^(EFNResponse * _Nullable response) {
+                                                     failure:^(EFNResponse * _Nonnull response) {
                                                          self.downloadRequestID = nil;
                                                          EFNLog(@"response:%@",response.description);
                                                      }];
 }
 
 - (IBAction)suspendDownloadBtnClicked:(id)sender {
-    [EFNetHelper.shareHelper cancelWithRequestID:self.downloadRequestID];
+    [EFNetHelper.shareHelper suspendWithRequestID:self.downloadRequestID];
 }
+
 - (IBAction)resumeDownloadBtnClicked:(id)sender {
     [EFNetHelper.shareHelper resumeWithRequestID:self.downloadRequestID];
 }
