@@ -74,10 +74,14 @@ typedef void (^EFNCallBlock)(EFNResponse * _Nonnull response);
 
 /// 网络状态
 typedef NS_ENUM(NSInteger, EFNReachableStatus) {
-    EFNReachableStatusUnknown          = -1,    //!< 未知
-    EFNReachableStatusNotReachable     = 0,     //!< 无网络
-    EFNReachableStatusReachableViaWWAN = 1,     //!< 蜂窝移动网络
-    EFNReachableStatusReachableViaWiFi = 2,     //!< WiFi
+    /// 未知
+    EFNReachableStatusUnknown          = -1,
+    /// 无网络
+    EFNReachableStatusNotReachable     = 0,
+    /// 蜂窝移动网络
+    EFNReachableStatusReachableViaWWAN = 1,
+    /// WiFi
+    EFNReachableStatusReachableViaWiFi = 2,
 };
 
 /// 请求类型 常规/上传/下载

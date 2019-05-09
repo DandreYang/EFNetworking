@@ -208,13 +208,65 @@ EFNDeprecated("请替换为`-appendUploadDataWithFileURL:name:fileName:mimeType`
 /// 文件的MIME类型，（例如，一个JPEG图片的MIME类型为image/jpeg）
 @property (nonatomic, copy, readonly, nullable) NSString *mimeType;
 
-#pragma mark - Methods
+
+/**
+ 根据文件二进制数据和文件的键名实例化的方法
+
+ @param fileData 文件的二进制数据
+ @param name 与formData数据关联的名称（key）
+ @return 实例化对象
+ */
 + (instancetype _Nonnull)formDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name;
+
+/**
+ 根据文件二进制数据和文件的键名实例化的方法
+ 
+ @param fileData 文件的二进制数据
+ @param name 与formData数据关联的名称（key）
+ @param fileName 服务端保存的文件名称
+ @return 实例化对象
+ */
 + (instancetype _Nonnull)formDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName;
+
+/**
+ 根据文件二进制数据和文件的键名实例化的方法
+ 
+ @param fileData 文件的二进制数据
+ @param name 与formData数据关联的名称（key）
+ @param fileName 服务端保存的文件名称
+ @param mimeType 文件的MIME类型
+ @return 实例化对象
+ */
 + (instancetype _Nonnull)formDataWithFileData:(NSData *_Nonnull)fileData name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
 
+/**
+ 根据文件二进制数据和文件的键名实例化的方法
+ 
+ @param fileURL 文件的URL
+ @param name 与formData数据关联的名称（key）
+ @return 实例化对象
+ */
 + (instancetype _Nonnull)formDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name ;
+
+/**
+ 根据文件二进制数据和文件的键名实例化的方法
+ 
+ @param fileURL 文件的URL
+ @param name 与formData数据关联的名称（key）
+ @param fileName 服务端保存的文件名称
+ @return 实例化对象
+ */
 + (instancetype _Nonnull)formDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName;
+
+/**
+ 根据文件二进制数据和文件的键名实例化的方法
+ 
+ @param fileURL 文件的URL
+ @param name 与formData数据关联的名称（key）
+ @param fileName 服务端保存的文件名称
+ @param mimeType 文件的MIME类型
+ @return 实例化对象
+ */
 + (instancetype _Nonnull)formDataWithFileURL:(NSURL *_Nonnull)fileURL name:(NSString *_Nonnull)name fileName:(NSString *_Nullable)fileName mimeType:(NSString *_Nullable)mimeType;
 
 - (instancetype _Nonnull )initWithFileURL:(NSURL *_Nonnull)fileURL NS_UNAVAILABLE;
@@ -222,5 +274,8 @@ EFNDeprecated("请替换为`-appendUploadDataWithFileURL:name:fileName:mimeType`
 
 @end
 
+/**
+ 文件上传 StreamUploadData 类，适用于不是FormData上传的场景
+ */
 @interface EFNStreamUploadData : EFNUploadData
 @end
