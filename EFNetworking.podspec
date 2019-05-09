@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "EFNetworking"
-  s.version      = "1.0.1"
+  s.version      = "1.1.0"
   s.summary      = "EFNetworking，iOS网络层组件，支持POST/GET/PUT/DELETE等网络请求和上传下载及断点续传功能，自带网络缓存处理机制、灵活设置接口签名、自定义HEADER和公共参数等功能"
   s.homepage     = "https://github.com/DandreYang/EFNetworking.git"
   s.license      = "MIT"
@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
   s.subspec 'Request' do |sss|
     sss.public_header_files = 'EFNetworking/Core/Request/**.h','EFNetworking/Core/EFNHeader.h'
     sss.source_files = 'EFNetworking/Core/Request/*.{h,m}','EFNetworking/Core/EFNHeader.h'
-    sss.dependency  'EFNetworking/Response'
+    sss.dependency  'EFNetworking/Categories'
   end
 
   s.subspec 'Response' do |sss|
@@ -31,7 +31,6 @@ Pod::Spec.new do |s|
   s.subspec 'CacheHelper' do |sss|
     sss.public_header_files = 'EFNetworking/Core/CacheHelper/**.h'
     sss.source_files = 'EFNetworking/Core/CacheHelper/*.{h,m}'
-    sss.dependency  'EFNetworking/Categories'
     sss.dependency  'EFNetworking/Request'
     sss.dependency  'EFNetworking/Response'
     sss.dependency  'YYCache', '~> 1.0.4'

@@ -17,6 +17,8 @@
 		AF320217206D02DF00C089FF /* EFNetworkingDELETETests.m in Sources */ = {isa = PBXBuildFile; fileRef = AF320216206D02DF00C089FF /* EFNetworkingDELETETests.m */; };
 		AF320219206D02F100C089FF /* EFNetworkingUploadTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AF320218206D02F100C089FF /* EFNetworkingUploadTests.m */; };
 		AF32021B206D030900C089FF /* EFNetworkingDownloadTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AF32021A206D030900C089FF /* EFNetworkingDownloadTests.m */; };
+		AF46997F228418B90052A4D1 /* EFNetworking.podspec in Resources */ = {isa = PBXBuildFile; fileRef = AF46997E228418B90052A4D1 /* EFNetworking.podspec */; };
+		AF469981228418C30052A4D1 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = AF469980228418C30052A4D1 /* README.md */; };
 		AF895240226899F5009ECADB /* DemoRequestModelReformer.m in Sources */ = {isa = PBXBuildFile; fileRef = AF89523E226899F5009ECADB /* DemoRequestModelReformer.m */; };
 		AF89524422689AF4009ECADB /* DemoResponseModelReformer.m in Sources */ = {isa = PBXBuildFile; fileRef = AF89524322689AF4009ECADB /* DemoResponseModelReformer.m */; };
 		AF89524722689D8D009ECADB /* DemoResponseModel.m in Sources */ = {isa = PBXBuildFile; fileRef = AF89524622689D8D009ECADB /* DemoResponseModel.m */; };
@@ -79,6 +81,8 @@
 		AF320216206D02DF00C089FF /* EFNetworkingDELETETests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EFNetworkingDELETETests.m; sourceTree = "<group>"; };
 		AF320218206D02F100C089FF /* EFNetworkingUploadTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EFNetworkingUploadTests.m; sourceTree = "<group>"; };
 		AF32021A206D030900C089FF /* EFNetworkingDownloadTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EFNetworkingDownloadTests.m; sourceTree = "<group>"; };
+		AF46997E228418B90052A4D1 /* EFNetworking.podspec */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = EFNetworking.podspec; sourceTree = "<group>"; };
+		AF469980228418C30052A4D1 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		AF7E5ECD2266D536007D2C00 /* EFNetworking.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EFNetworking.h; sourceTree = "<group>"; };
 		AF89523E226899F5009ECADB /* DemoRequestModelReformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DemoRequestModelReformer.m; sourceTree = "<group>"; };
 		AF89523F226899F5009ECADB /* DemoRequestModelReformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DemoRequestModelReformer.h; sourceTree = "<group>"; };
@@ -292,6 +296,8 @@
 		AFEA082F20611BE300A39220 = {
 			isa = PBXGroup;
 			children = (
+				AF469980228418C30052A4D1 /* README.md */,
+				AF46997E228418B90052A4D1 /* EFNetworking.podspec */,
 				AFEA083A20611BE300A39220 /* EFNetworking */,
 				AF320207206CD78F00C089FF /* EFNetworkingTests */,
 				AFEA083920611BE300A39220 /* Products */,
@@ -445,8 +451,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AF469981228418C30052A4D1 /* README.md in Resources */,
 				AFEA084820611BE300A39220 /* LaunchScreen.storyboard in Resources */,
 				AFEA084520611BE300A39220 /* Assets.xcassets in Resources */,
+				AF46997F228418B90052A4D1 /* EFNetworking.podspec in Resources */,
 				AFEA084320611BE300A39220 /* Main.storyboard in Resources */,
 				AF22B83F2269E19200ABA56F /* EFNetworking-title.png in Resources */,
 			);
