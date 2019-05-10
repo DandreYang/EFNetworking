@@ -86,7 +86,7 @@
 @property (nonatomic, assign) EFNRequestSerializerType requestSerializerType;
 
 /**
- 配置 ResponseSerializerType，默认为 EFNResponseSerializerTypeJSON（参考EFNDefaultConfig的默认值）
+ 配置 ResponseSerializerType，默认为 EFNResponseSerializerTypeHTTP（参考EFNDefaultConfig的默认值）
  */
 @property (nonatomic, assign) EFNResponseSerializerType responseSerializerType;
 
