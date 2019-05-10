@@ -1,5 +1,5 @@
 <p align="center" >
-  <img src="https://raw.githubusercontent.com/DandreYang/EFNetworking/master/EFNetworking/Demo/Sources/EFNetworking-title.png" height="200" alt="EFNetworking" title="EFNetworking"/>
+  <img src="./EFNetworking/Demo/Sources/EFNetworking-title.png" height="200" alt="EFNetworking" title="EFNetworking"/>
 </p>
 
 [![Build Status](https://travis-ci.org/DandreYang/EFNetworking.svg?branch=master)](https://travis-ci.org/DandreYang/EFNetworking)
@@ -201,4 +201,4 @@ NSLog(@"req:%@", req);
 
 ## License
 
-EFNetworking is released under the MIT license. See [LICENSE](https://github.com/DandreYang/EFNetworking/blob/master/LICENSE) for details.
+EFNetworking is released under the MIT license. See [LICENSE](./LICENSE) for details.
