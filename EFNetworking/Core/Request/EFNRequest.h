@@ -81,12 +81,12 @@
 @property (nonatomic, nonnull) EFNHTTPMethod HTTPMethod;
 
 /**
- 配置 RequestSerializerType, 默认为 EFNRequestSerializerTypeHTTP（参考EFNDefaultConfig的默认值）
+ 配置 RequestSerializerType, 默认为 EFNRequestSerializerTypeHTTP（参考<EFNDefaultConfig>的默认值）
  */
 @property (nonatomic, assign) EFNRequestSerializerType requestSerializerType;
 
 /**
- 配置 ResponseSerializerType，默认为 EFNResponseSerializerTypeHTTP（参考EFNDefaultConfig的默认值）
+ 配置 ResponseSerializerType，默认为 EFNResponseSerializerTypeHTTP（参考<EFNDefaultConfig>的默认值）
  */
 @property (nonatomic, assign) EFNResponseSerializerType responseSerializerType;
 
