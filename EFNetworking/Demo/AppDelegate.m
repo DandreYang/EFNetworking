@@ -67,6 +67,8 @@
         config.generalHeaders = @{@"HeaderKey":@"HeaderValue"};
         // 设置通用参数
         config.generalParameters = @{@"generalParameterKey":@"generalParameterValue"};
+        // 设置全局支持请求的数据类型
+        config.generalRequestSerializerType = EFNRequestSerializerTypeJSON;
         // 设置全局支持响应的数据类型
         config.generalResponseSerializerType = EFNResponseSerializerTypeJSON;
         
