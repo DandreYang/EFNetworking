@@ -77,7 +77,7 @@ FOUNDATION_EXPORT NSString * _Nonnull EFNetworkingDefaultDownloadDirectory(void)
  */
 - (NSNumber *_Nullable)request:(id <EFNRequestModelReformer> _Nonnull)requestModel
                       reformer:(id <EFNResponseDataReformer> _Nullable (^_Nullable)(void))reformerConfig
-                      progress:(void (^_Nullable) (NSProgress * _Nullable progress))progressBlock
+                      progress:(EFNProgressBlock _Nullable )progressBlock
                       response:(void (^_Nullable) (id _Nullable reformData, EFNResponse * _Nonnull response))responseBlock;
 
 /**

@@ -49,8 +49,9 @@ pod 'EFNetworking'
        - 1.0版本及以上
        - 网络层缓存处理依赖此库
 
-## Usage example
-### 全局配置
+## Example 
+### Usage of Objective-C
+> 全局配置
 ```objc
 
 // 这里设置的config实际上是一个单例，默认对EFNetHelper的实例化对象都会有效，除非单独给对应的EFNetHelper实例赋值新的config代理
@@ -79,7 +80,7 @@ pod 'EFNetworking'
 
 ```
 
-### 普通GET/POST/PUT/DELETE等请求
+> 普通GET/POST/PUT/DELETE等请求
 ```objc
 [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
     // 此处若不设置request.server，会自动取全局配置里的generalServer
@@ -105,7 +106,7 @@ pod 'EFNetworking'
 }];
 ```
 
-### 使用模型请求示例
+> 使用模型请求示例
 ```objc
 
 // 实例化请求模型
@@ -123,7 +124,7 @@ NSLog(@"req:%@", req);
                             DemoResponseModel *resModel = [[DemoResponseModel alloc] init];
                             return resModel;
                         }
-                        progress:^(NSProgress * _Nullable progress) {
+                        progress:^(NSProgress * _Nonnull progress) {
                             NSLog(@"progress:%@",progress.localizedDescription);
                         }
                         response:^(DemoResponseModel * reformData, EFNResponse * _Nonnull response) {
@@ -135,7 +136,7 @@ NSLog(@"req:%@", req);
                         }];
 ```
 
-### 上传文件示例
+> 上传文件示例
 ```objc
 
 [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
@@ -147,19 +148,19 @@ NSLog(@"req:%@", req);
     NSData *imgData = UIImagePNGRepresentation(image);
     [request appendUploadDataWithFileData:imgData name:@"img1"];
 }
-                        progress:^(NSProgress * _Nullable progress) {
+                        progress:^(NSProgress * _Nonnull progress) {
                             NSLog(@"progress:%@",progress.localizedDescription);
                         }
-                         success:^(EFNResponse * _Nullable response) {
+                         success:^(EFNResponse * _Nonnull response) {
                              NSLog(@"response:%@",response.description);
                          }
-                         failure:^(EFNResponse * _Nullable response) {
+                         failure:^(EFNResponse * _Nonnull response) {
                              NSLog(@"response:%@",response.description);
                          }];
 
 ```
 
-### 下载文件示例
+> 下载文件示例
 ```objc
 
 [EFNetHelper.shareHelper request:^(EFNRequest * _Nonnull request) {
@@ -173,7 +174,7 @@ NSLog(@"req:%@", req);
     // 设置是否支持断点续传，默认为支持
     request.enableResumeDownload = YES;
     
-    // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径，可以是文件夹或文件路径
+    // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径
     // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
     // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -182,17 +183,155 @@ NSLog(@"req:%@", req);
     NSString *path = [documentsDirectory stringByAppendingPathComponent:@"/Demo/Download"];
     request.downloadSavePath = path;
 }
-                        progress:^(NSProgress * _Nullable progress) {
+                        progress:^(NSProgress * _Nonnull progress) {
                             // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
                             float unitCount = 1.0 * progress.completedUnitCount/progress.totalUnitCount;
                             NSLog(@"%@",[NSString stringWithFormat:@"已下载 %.0f%%",unitCount*100]);
                         }
-                         success:^(EFNResponse * _Nullable response) {
+                         success:^(EFNResponse * _Nonnull response) {
                              NSLog(@"response:%@",response.description);
                          }
-                         failure:^(EFNResponse * _Nullable response) {
+                         failure:^(EFNResponse * _Nonnull response) {
                              NSLog(@"response:%@",response.description);
                          }];
+
+```
+
+### Usage of Swift 
+> 全局配置
+```swift
+
+// 这里设置的config实际上是一个单例，默认对EFNetHelper的实例化对象都会有效，除非单独给对应的EFNetHelper实例赋值新的config代理
+EFNetHelper.generalConfigHandler({ (config) in
+
+    // 设置全局签名代理
+    config.signService = DemoSignService.init()
+    // 设置全局服务地址
+    config.generalServer = "http://api.baidu.com"
+    // 设置全局Headers
+    config.generalHeaders = ["HeaderKey":"HeaderValue"]
+    // 设置通用参数
+    config.generalParameters = ["generalParameterKey":"generalParameterValue"]
+    // 设置全局支持请求的数据类型
+    config.generalRequestSerializerType = .JSON
+    // 设置全局支持响应的数据类型
+    config.generalResponseSerializerType = .JSON
+
+    // 这里设置的下载文件保存路径是对全局有效的，所以建议设置的路径是指定到文件夹而不是文件，否则后下载的文件会将之前下载的文件进行覆盖
+    let documentDiretory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first
+    config.generalDownloadSavePath = documentDiretory?.appending("/General/Download")
+})
+
+```
+
+> 普通GET/POST/PUT/DELETE等请求
+```swift
+
+EFNetHelper.share().request({ (request) in
+    // 此处若不设置request.server，会自动取全局配置里的generalServer
+    // 若设置了 request.server，则以request.server的值为准
+    // request.server = @"http://api2.abc.com";
+    request.api = "testApi"
+    // 默认的HTTPMethod是.POST，如果不是POST，在这里需要做下设置，
+
+    request.httpMethod = .GET
+    // 设置请求参数，请求参数可以是字典，也可以是数组，根据API实际规则做设置即可
+    request.parameters = ["key1":"value1"] as NSObjectProtocol
+
+    // 设置是否允许缓存数据
+    request.enableCache = true
+    // 设置缓存时间，默认为 1800 秒
+    request.cacheTimeout = 60*60*60
+}, progress: { (progress) in
+    print(progress.localizedDescription as Any)
+}, success: { (response) in
+    print(response)
+}) { (response) in
+    print(response)
+}
+
+```
+
+> 使用模型请求示例
+```Swift
+
+// 实例化请求模型
+DemoRequestModel *req = DemoRequestModel.init()
+
+req.api = "helloworld"
+req.key1 = "value1"
+req.key2 = "value2"
+req.keyn = "valuen"
+EFNetHelper.share().request(req, reformer: { () -> EFNResponseDataReformer? in
+    var resReformer = DemoResponseModel.init()
+    return resReformer
+}, progress: { (progress) in
+    print(progress?.localizedDescription as Any)
+}) { ( data, response) in
+    let reformData = data as! EFNResponseDataReformer
+
+    if reformData.isSuccess {
+        print("请求成功，reformData:\(reformData)");
+    } else {
+        print("请求失败，error：\(response.error.localizedDescription)");
+    }
+}
+
+```
+
+> 上传文件示例
+```Swift
+
+EFNetHelper.share().request({ (request) in
+    request.api = "file/upload"
+    request.parameters = ["path":"EFNetWorking/demo"] as NSObjectProtocol
+    request.requestType = .formDataUpload
+
+    if let imgData = UIImage(named: "image1.png")!.pngData() {
+        request.appendUploadData(withFileData: imgData, name: "img1")
+    }  else {
+        print("imgData is nil")
+    }
+}, progress: { (progress) in
+    print(progress.localizedDescription as Any)
+}, success: { (response) in
+    print(response)
+}) { (response) in
+    print(response)
+}
+
+```
+
+> 下载文件示例
+```objc
+
+EFNetHelper.share().request({ (request) in
+    // 这里如果直接设置了url,url的格式必须是带http://或https://的url全路径，如：http://www.abc.com
+    // 直接设置url后，server和api将失效，也就是url的优先级是高于 server+api方式的
+    request.url = "https://github.com/DandreYang/EFNetworking/archive/master.zip"
+
+    // 默认的requestType = .General，如果是下载和上传请求，这里需要做下设置，否则可能会报错
+    request.requestType = .download;
+
+    // 设置是否支持断点续传，默认为支持
+    request.enableResumeDownload = true
+
+    // 设置下载文件的保存路径，针对单一下载请求，可以指定到一个明确的下载路径
+    // 如果这里没有做设置，会取全局配置的generalDownloadSavePath（文件夹），
+    // 如果全局配置也没有设置generalDownloadSavePath，则会默认保存在APP的"Documents/EFNetworking/Download/"目录下
+    let paths = NSSearchPathForDirectoriesInDomains(.downloadsDirectory, .userDomainMask, true)
+    let documentsDirectory = paths.first
+
+    let path = documentsDirectory?.appending("/Demo/Download")
+    request.downloadSavePath = path;
+}, progress: { (progress) in
+    // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
+    print(progress.localizedDescription as Any);
+}, success: { (response) in
+    print(response)
+}) { (response) in
+    print(response)
+}
 
 ```
 
