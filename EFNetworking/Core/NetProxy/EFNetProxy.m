@@ -763,13 +763,13 @@ static NSURL * EFNDownloadTempPath(NSString * fileName) {
             responseSerializer = [AFJSONResponseSerializer serializer];
             break;
         case EFNResponseSerializerTypeXML:
-
+            responseSerializer = [AFXMLParserResponseSerializer serializer];
             break;
         case EFNResponseSerializerTypePlist:
             responseSerializer = [AFPropertyListResponseSerializer serializer];
             break;
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-        case EFNResponseSerializerTypeXML:
+        case EFNResponseSerializerTypeXMLDocument:
             responseSerializer = [AFXMLDocumentResponseSerializer serializer];
             break;
 #endif
