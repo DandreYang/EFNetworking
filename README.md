@@ -323,7 +323,7 @@ EFNetHelper.share().request({ (request) in
     let documentsDirectory = paths.first
 
     let path = documentsDirectory?.appending("/Demo/Download")
-    request.downloadSavePath = path;
+    request.downloadSavePath = path
 }, progress: { (progress) in
     // 需要注意的是，网络层内部已经做了处理，这里已经是在主线程了
     print(progress.localizedDescription as Any);
