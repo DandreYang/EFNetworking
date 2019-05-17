@@ -32,7 +32,6 @@
 - (void)setError:(NSError *)error
 {
     _error = error;
-    _statusCode = error.code;
     _message = error.localizedDescription;
 }
 
